@@ -104,6 +104,9 @@ def format_sexigesimal(coord, add_sign=False, logger=None):
     formatted_coord : `str`
         The properly formatted coordinate
     """
+    if logger is None:
+        logger = get_logger()
+
     # Determine the sign
     if coord.startswith(('-', '–')):
         sign = '-'
@@ -366,8 +369,8 @@ def get_atnf_pulsars(logger=None):
     # Loop through all the pulsars and store the pointings in dictionaries
     pointings = []
     for psrj, raj, decj, rajd, decjd in zip(psrjs, rajs, decjs, rajds, decjds):
-        raj = format_sexigesimal(raj)
-        decj = format_sexigesimal(decj, add_sign=True)
+        raj = format_sexigesimal(raj, logger=logger)
+        decj = format_sexigesimal(decj, add_sign=True, logger=logger)
         pointing = dict(Name=psrj, RAJ=raj, DECJ=decj, RAJD=rajd, DECJD=decjd)
         pointings.append(pointing)
     return pointings

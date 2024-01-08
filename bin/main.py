@@ -9,12 +9,14 @@ Credits: N. Swainston and B. Meyers
 
 __version__ = '0.1'
 
+import sys
 import argparse
 
 import numpy as np
 
 from logger_module import get_log_levels, get_logger
 from coord_module import get_pointings, get_atnf_pulsars
+from obs_module import get_all_obsids
 
 
 def main():
@@ -53,7 +55,11 @@ def main():
     # Initialise the logger
     logger = get_logger(loglevels[args.loglvl])
 
-    # Decide where to parse user provided source list or use the full catalogue
+    if not args.sources and not args.sources_file and not args.obsids:
+        logger.info('No sources or observations specified.')
+        sys.exit(0)
+
+    # Decide whether to parse user provided source list or use the full catalogue
     if args.sources or args.sources_file:
         # Get sources from command line
         sources = args.sources
@@ -79,6 +85,23 @@ def main():
         logger.info('Collecting pulsars from the ATNF catalogue...')
         pointings = get_atnf_pulsars(logger=logger)
         logger.info(f'{len(pointings)} pulsars parsed from the catalogue')
+
+    # Decide whether to parse user provided observation list or use all observations
+    if args.obsids:
+        # Get obs IDs from command line
+        obsids = []
+        for obsid in args.obsids:
+            if len(str(obsid)) != 10:
+                logger.error(f'Invalid obs ID provided: {obsid}')
+                continue
+            obsids.append(obsid)
+        # Print out a full list of observations
+        logger.info(f"Obs IDs: {obsids}")
+    else:
+        logger.info('Retrieving metadata for all observations...')
+        obsids = get_all_obsids(logger=logger)
+        logger.info(f'{len(obsids)} observations found')
+        logger.debug(f'Obs IDs: {obsids}')
 
 
 if __name__ == "__main__":
