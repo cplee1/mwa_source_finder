@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mwa_source_finder"
+authors = [
+    { name = "Christopher Lee", email = "c.p.lee@postgrad.edu.au" },
+    { name = "Nick Swainston" },
+    { name = "Bradley Meyers" },
+]
+description = "Find sources in MWA observations."
+requires-python = ">= 3.8"
+license = { file = "LICENSE" }
+readme = { file = "README.md", content-type = "text/markdown" }
+dependencies = [
+    "astropy >= 5.1",
+    "psrqpy >= 1.2.7",
+    "mwa-hyperbeam >= 0.7.0"
+]
+dynamic = ["version"]
+
+[project.scripts]
+source-finder = "mwa_source_finder.cli:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "mwa_source_finder.__version__" }

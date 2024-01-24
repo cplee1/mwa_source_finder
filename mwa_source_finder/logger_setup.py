@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import logging
 
 
@@ -18,16 +16,18 @@ def get_logger(loglvl=logging.INFO):
 
     Parameters
     ----------
-    loglvl : level
+    loglvl : `level`
         The logging level
 
     Returns
     -------
-    logger : logger
+    logger : `logging.Logger`
         An intance of the logging.Logger class
     """
     logger = logging.getLogger(__name__)
-    formatter = logging.Formatter('%(asctime)s %(name)s %(lineno)-4d %(levelname)-9s :: %(message)s')
+    formatter = logging.Formatter(
+        "%(asctime)s %(name)s %(lineno)-4d %(levelname)-9s :: %(message)s"
+    )
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
     logger.setLevel(loglvl)
