@@ -4,9 +4,7 @@ import sys
 import numpy as np
 import mwa_hyperbeam
 
-import mwa_source_finder.logger_setup as logger_setup
-import mwa_source_finder.obs_utils as obs_utils
-import mwa_source_finder.coord_utils as coord_utils
+from mwa_source_finder import logger_setup, obs_utils, coord_utils
 
 
 def get_beam_power_over_time(pointings, obsid, metadata, offset=0, dt=100, logger=None):

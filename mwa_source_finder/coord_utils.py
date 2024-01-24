@@ -2,7 +2,7 @@ from astropy.coordinates import SkyCoord
 from astropy import units as u
 import psrqpy
 
-import mwa_source_finder.logger_setup as logger_setup
+from mwa_source_finder import logger_setup
 
 
 def is_float(string):

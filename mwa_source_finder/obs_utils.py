@@ -2,7 +2,7 @@ import time
 import json
 import urllib
 
-import mwa_source_finder.logger_setup as logger_setup
+from mwa_source_finder import logger_setup
 
 
 def get_metadata(

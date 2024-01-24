@@ -5,8 +5,7 @@ import argparse
 
 import numpy as np
 
-import mwa_source_finder.logger_setup as logger_setup
-import mwa_source_finder.finder as finder
+from mwa_source_finder import logger_setup, finder
 
 
 def main():
