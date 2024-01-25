@@ -1,4 +1,5 @@
-from astropy.coordinates import SkyCoord
+from astropy.coordinates import SkyCoord, AltAz, EarthLocation
+from astropy.time import Time
 from astropy import units as u
 import psrqpy
 
@@ -184,6 +185,39 @@ def sexigesimal_to_decimal(raj, decj):
     rajd = c.ra.deg
     decjd = c.dec.deg
     return rajd, decjd
+
+
+def equatorial_to_horizontal(rajd, decjd, gps_epoch):
+    """Convert equatorial (RA/DEC) to horizontal (Alt/Az) coordinates.
+
+    Parameters
+    ----------
+    rajd : `float` or `numpy.array`
+        The right acension in decimal degrees
+    decjd : `float` or `numpy.array`
+        The declination in decimal degrees
+    gps_epoch : `float` or `numpy.array`
+        The gps time of the horizontal coordinates
+
+    Returns
+    -------
+    alt : `float` or `numpy.array`
+        The altitude angle in degrees
+    az : `float` or `numpy.array`
+        The azimuth angle in degrees
+    za : `float` or `numpy.array`
+        The zenith angle in degrees
+    """
+    eq_pos = SkyCoord(rajd, decjd, unit=(u.deg, u.deg))
+    obstime = Time(float(gps_epoch), format="gps")
+    earth_location = EarthLocation.from_geodetic(
+        lon="116:40:14.93", lat="-26:42:11.95", height=377.8
+    )
+    altaz_pos = eq_pos.transform_to(AltAz(obstime=obstime, location=earth_location))
+    alt = altaz_pos.alt.deg
+    az = altaz_pos.az.deg
+    za = 90.0 - alt
+    return alt, az, za
 
 
 def get_pulsar_coords(pulsar, query, logger=None):

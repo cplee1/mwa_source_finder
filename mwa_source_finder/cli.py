@@ -1,11 +1,9 @@
-#!/usr/bin/env python
-
 import sys
 import argparse
 
 import numpy as np
 
-from mwa_source_finder import logger_setup, finder
+from mwa_source_finder import logger_setup, finder, file_output
 
 
 def main():
@@ -66,6 +64,33 @@ def main():
         default=None,
         help="A list of obs IDs to search.",
     )
+    obs_args.add_argument(
+        "--offset",
+        type=int,
+        default=0,
+        help="Offset from the start of the observation in seconds.",
+    )
+    finder_args = parser.add_argument_group(
+        "Finder functionality arguments",
+        "Options to specify how source(s) or observation(s) are found.",
+    )
+    finder_args.add_argument(
+        "--obs_for_source",
+        action="store_true",
+        help="Find observations that each source is in",
+    )
+    finder_args.add_argument(
+        "--dt", type=float, default=60, help="Step size in time for beam modelling."
+    )
+    finder_args.add_argument(
+        "--min_z_power",
+        type=float,
+        default=0.3,
+        help="Minimum zenith-normalised power to count as in the beam.",
+    )
+    finder_args.add_argument(
+        "--norm_to_zenith", action="store_false", help="Normalise the powers to zenith."
+    )
     args = parser.parse_args()
 
     # Initialise the logger
@@ -93,8 +118,18 @@ def main():
         sources = None
 
     # Run the source finder
-    finder.find_sources_in_obs(sources, args.obsids, logger=logger)
+    finder_result, obs_metadata_dict = finder.find_sources_in_obs(
+        sources,
+        args.obsids,
+        obs_for_source=args.obs_for_source,
+        offset=args.offset,
+        dt=args.dt,
+        min_z_power=args.min_z_power,
+        norm_to_zenith=args.norm_to_zenith,
+        logger=logger,
+    )
 
-
-if __name__ == "__main__":
-    main()
+    if args.obs_for_source:
+        file_output.write_output_source_files(finder_result, logger=logger)
+    else:
+        file_output.write_output_obs_files(finder_result, logger=logger)

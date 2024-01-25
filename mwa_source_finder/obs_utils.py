@@ -98,12 +98,12 @@ def get_common_metadata(obsid, logger=None):
             The observation duration in seconds
         delays : `list`
             [xdelays, ydelays]
-            
+
             xdelays : `list`
                 The delays for the X polarisation
             ydelays : 'list'
                 The delays for the Y polarisation
-    
+
         channels : `list`
             The frequency channels in MHz
         centrefreq : `float`
@@ -117,10 +117,12 @@ def get_common_metadata(obsid, logger=None):
     maxfreq = float(max(metadata["rfstreams"]["0"]["frequencies"]))
     xdelays = metadata["rfstreams"]["0"]["xdelays"]
     ydelays = metadata["rfstreams"]["0"]["ydelays"]
+    channels = metadata["rfstreams"]["0"]["frequencies"]
     common_metadata = dict(
-        duration=metadata["metadata"]["stoptime"] - metadata["metadata"]["starttime"],
+        duration=metadata["stoptime"] - metadata["starttime"],
         delays=[xdelays, ydelays],
-        channels=metadata["rfstreams"]["0"]["frequencies"],
+        channels=channels,
+        bandwidth=1.28 * (channels[-1] - channels[0] + 1),
         centrefreq=1.28 * (minfreq + 0.5 * (maxfreq - minfreq)),
     )
     return common_metadata

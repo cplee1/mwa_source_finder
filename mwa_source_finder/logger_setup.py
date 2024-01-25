@@ -25,9 +25,7 @@ def get_logger(loglvl=logging.INFO):
         An intance of the logging.Logger class
     """
     logger = logging.getLogger(__name__)
-    formatter = logging.Formatter(
-        "%(asctime)s %(name)s %(lineno)-4d %(levelname)-9s :: %(message)s"
-    )
+    formatter = logging.Formatter("%(asctime)s %(levelname)-9s :: %(message)s")
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
     logger.setLevel(loglvl)
