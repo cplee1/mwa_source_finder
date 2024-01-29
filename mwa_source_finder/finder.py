@@ -1,5 +1,7 @@
+import logging
 import os
 import sys
+from typing import Tuple
 
 import numpy as np
 from scipy import interpolate
@@ -9,8 +11,53 @@ from mwa_source_finder import logger_setup, obs_utils, coord_utils
 
 
 def get_beam_power_over_time(
-    pointings, obsid, metadata, offset=0, dt=60, norm_to_zenith=True, logger=None
-):
+    pointings: list,
+    obsid: int,
+    metadata: dict,
+    offset: int = 0,
+    dt: float = 60.0,
+    norm_to_zenith: bool = True,
+    logger: logging.Logger = None,
+) -> np.ndarray:
+    """Compute the beam power towards a list of sources for a specified
+    observation with a specified time resolution.
+
+    Parameters
+    ----------
+    pointings : list
+        A list of pointing dictionaries containing at minimum:
+            RAJD : float
+                The J2000 right ascension in decimal degrees.
+            DECJD : float
+                The J2000 declination in decimal degrees.
+    obsid : int
+        The observation ID.
+    metadata : dict
+        A dictionary of metadata containing at minimum:
+            duration : int
+                The observation duration in seconds.
+            delays : list
+                A list with two items:
+                    xdelays : list
+                        The delays for the X polarisation.
+                    ydelays : list
+                        The delays for the Y polarisation.
+            channels : list
+                The frequency channels in MHz.
+    offset : int, optional
+        Offset from the start of the observation in seconds, by default 0.
+    dt : float, optional
+        The step size in time to evaluate the power at, by default 60.
+    norm_to_zenith : bool, optional
+        Whether to normalise to the power at zenith, by default True.
+    logger : logging.Logger, optional
+        A custom logger to use, by default None.
+
+    Returns
+    -------
+    np.ndarray
+        A 3D array of powers for each pointing, timestep, and channel.
+    """
     if logger is None:
         logger = logger_setup.get_logger()
 
@@ -74,7 +121,37 @@ def get_beam_power_over_time(
     return 0.5 * (powers_x + powers_y)
 
 
-def beam_enter_exit(powers, duration, dt=60, min_z_power=0.3, logger=None):
+def beam_enter_exit(
+    powers: np.ndarray,
+    duration: int,
+    dt: float = 60.0,
+    min_z_power: float = 0.3,
+    logger: logging.Logger = None,
+) -> Tuple[float, float]:
+    """Find where a source enters and exits the beam.
+
+    Parameters
+    ----------
+    powers : np.ndarray
+        A 2D array of powers for each timestep and channel.
+    duration : int
+        The observation duration in seconds.
+    dt : float, optional
+        The step size in time, by default 60.
+    min_z_power : float, optional
+        The minimum zenith-normalised power, by default 0.3.
+    logger : logging.Logger, optional
+        A custom logger to use, by default None.
+
+    Returns
+    -------
+    Tuple[float, float]
+        A tuple containing the following:
+            enter_beam : float
+                The fraction of the observation where the source enters the beam.
+            exit_beam : float
+                The fraction of the observation where the source exits the beam.
+    """
     if logger is None:
         logger = logger_setup.get_logger()
 
@@ -110,15 +187,65 @@ def beam_enter_exit(powers, duration, dt=60, min_z_power=0.3, logger=None):
 
 
 def source_beam_coverage(
-    pointings,
-    obsids,
-    obs_metadata_dict,
-    offset=0,
-    input_dt=60,
-    min_z_power=0.3,
-    norm_to_zenith=True,
-    logger=None,
-):
+    pointings: list,
+    obsids: list,
+    obs_metadata_dict: dict,
+    offset: int = 0,
+    input_dt: float = 60.0,
+    min_z_power: float = 0.3,
+    norm_to_zenith: bool = True,
+    logger: logging.Logger = None,
+) -> dict:
+    """For lists of pointings and observations, find where each source each
+    source enters and exits each beam.
+
+    Parameters
+    ----------
+    pointings : list
+        A list of pointing dictionaries containing at minimum:
+            Name : str
+                The source name.
+            RAJD : float
+                The J2000 right ascension in decimal degrees.
+            DECJD : float
+                The J2000 declination in decimal degrees.
+    obsids : list
+        A list of observation IDs.
+    obs_metadata_dict : dict
+        A dictionary of metadata dictionaries (obs ID keys), each with at minimum:
+            duration : int
+                The observation duration in seconds.
+            delays : list
+                A list with two items:
+                    xdelays : list
+                        The delays for the X polarisation.
+                    ydelays : list
+                        The delays for the Y polarisation.
+            channels : list
+                The frequency channels in MHz.
+    offset : int, optional
+        Offset from the start of the observation in seconds, by default 0.
+    input_dt : float, optional
+        The input step size in time (may be reduced), by default 60.
+    min_z_power : float, optional
+        The minimum zenith-normalised power, by default 0.3.
+    norm_to_zenith : bool, optional
+        Whether to normalise to the power at zenith, by default True.
+    logger : logging.Logger, optional
+        A custom logger to use, by default None.
+
+    Returns
+    -------
+    dict
+        A dictionary organised by obs IDs then source names, with each source
+        having a list the following:
+            enter_beam : float
+                The fraction of the observation where the source enters the beam.
+            exit_beam : float
+                The fraction of the observation where the source exits the beam.
+            max_pow: float
+                The maximum power reached within the beam.
+    """
     if logger is None:
         logger = logger_setup.get_logger()
 
@@ -163,15 +290,47 @@ def source_beam_coverage(
 
 
 def find_sources_in_obs(
-    sources,
-    obsids,
-    obs_for_source=False,
-    offset=0,
-    dt=60,
-    min_z_power=0.3,
-    norm_to_zenith=True,
-    logger=None,
-):
+    sources: list,
+    obsids: list,
+    obs_for_source: bool = False,
+    offset: int = 0,
+    input_dt: float = 60.,
+    min_z_power: float = 0.3,
+    norm_to_zenith: bool = True,
+    logger: logging.Logger = None,
+) -> Tuple[dict, dict]:
+    """Find sources in observations.
+
+    Parameters
+    ----------
+    sources : list
+        A list of sources.
+    obsids : list
+        A list of obs IDs.
+    obs_for_source : bool, optional
+        Whether to search for observations for each source, by default False.
+    offset : int, optional
+        Offset from the start of the observation in seconds, by default 0.
+    input_dt : float, optional
+        The input step size in time (may be reduced), by default 60.
+    min_z_power : float, optional
+        The minimum zenith-normalised power, by default 0.3.
+    norm_to_zenith : bool, optional
+        Whether to normalise to the power at zenith, by default True.
+    logger : logging.Logger, optional
+        A custom logger to use, by default None.
+
+    Returns
+    -------
+    Tuple[dict, dict]
+        A tuple containing the following:
+            output_data : dict
+                A dictionary containing the results, organised by either source
+                or observation ID.
+            obs_metadata_dict : dict
+                A dictionary containing common metadata for each observation,
+                organised by observation ID.
+    """
     if logger is None:
         logger = logger_setup.get_logger()
 
@@ -206,18 +365,18 @@ def find_sources_in_obs(
         obsids = obs_utils.get_all_obsids(logger=logger)
         logger.info(f"{len(obsids)} observations found")
 
-    logger.info('Obtaining metadata for observations...')
+    logger.info("Obtaining metadata for observations...")
     obs_metadata_dict = dict()
     for obsid in obsids:
         obs_metadata_dict[obsid] = obs_utils.get_common_metadata(obsid, logger)
 
-    logger.info('Finding sources in beams...')
+    logger.info("Finding sources in beams...")
     beam_coverage = source_beam_coverage(
         pointings,
         obsids,
         obs_metadata_dict,
         offset=offset,
-        input_dt=dt,
+        input_dt=input_dt,
         min_z_power=min_z_power,
         norm_to_zenith=norm_to_zenith,
         logger=logger,

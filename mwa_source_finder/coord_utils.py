@@ -1,3 +1,7 @@
+import logging
+from typing import Optional, Union, Tuple
+
+import numpy as np
 from astropy.coordinates import SkyCoord, AltAz, EarthLocation
 from astropy.time import Time
 from astropy import units as u
@@ -6,18 +10,18 @@ import psrqpy
 from mwa_source_finder import logger_setup
 
 
-def is_float(string):
-    """Check if a given string is a valid float.
+def is_float(string: str) -> bool:
+    """Check if a string is a valid representation of a float.
 
     Parameters
     ----------
-    string : `str`
-        The string to check
+    string : str
+        The string to check.
 
     Returns
     -------
-    is_float : `bool`
-        True if the string is a valid float
+    bool
+        Whether the string is able to be converted to a float.
     """
     try:
         float(string)
@@ -26,18 +30,18 @@ def is_float(string):
         return False
 
 
-def is_int(string):
-    """Check if a given string is a valid integer.
+def is_int(string: str) -> bool:
+    """Check if a string is a valid representation of an integer.
 
     Parameters
     ----------
-    string : `str`
-        The string to check
+    string : str
+        The string to check.
 
     Returns
     -------
-    is_int : `bool`
-        True if the string is a valid integer
+    bool
+        Whether the string is able to be converted to a float.
     """
     if string.isnumeric():
         return True
@@ -45,20 +49,20 @@ def is_int(string):
         return False
 
 
-def is_sexigesimal(coord, mode):
-    """Check if a given sexigesimal string is valid.
+def is_sexigesimal(coord: str, mode: str) -> bool:
+    """Check if a string is a valid sexigesimal coordinate.
 
     Parameters
     ----------
-    coord : `str`
-        The sexigesimal coordinate to check
-    mode : `str`
-        If 'RA', use hours, else if 'DEC', use degrees
+    coord : str
+        The sexigesimal coordinate to check.
+    mode : str
+        Either 'RA' for hours or 'DEC' for degrees.
 
     Returns
     -------
-    is_sexigesimal : `bool`
-        True if the string is a valid sexigesimal
+    bool
+        Whether the string is a valid sexigesimal coordinate.
     """
     if mode == "RA":
         hours, minutes, seconds = coord.split(":")
@@ -85,23 +89,25 @@ def is_sexigesimal(coord, mode):
     return True
 
 
-def format_sexigesimal(coord, add_sign=False, logger=None):
+def format_sexigesimal(
+    coord: str, add_sign: bool = False, logger: logging.Logger = None
+) -> Optional[str]:
     """Format a sexigesimal coordinate properly. Will assume zero for any
     missing units. E.g. '09:23' will be formatted as '09:23:00.00'.
 
     Parameters
     ----------
-    coord : `str`
-        A sexigesimal coordinate
-    add_sign : `bool`, optional
-        If True, will add a sign to the output (Default: False)
-    logger : `logging.Logger`, optional
-        A custom logger to use
+    coord : str
+        The sexigesimal coordinate to format.
+    add_sign : bool, optional
+        Add a sign to the output, by default False.
+    logger : logging.Logger, optional
+        A custom logger to use, by default None.
 
     Returns
     -------
-    formatted_coord : `str`
-        The properly formatted coordinate
+    str
+        The properly formatted coordinate.
     """
     if logger is None:
         logger = logger_setup.get_logger()
@@ -141,22 +147,24 @@ def format_sexigesimal(coord, add_sign=False, logger=None):
     return formatted_coord
 
 
-def decimal_to_sexigesimal(rajd, decjd):
+def decimal_to_sexigesimal(rajd: float, decjd: float) -> Tuple[str, str]:
     """Convert decimal degrees into sexagesimal coordinates.
 
     Parameters
     ----------
-    rajd : `float`
-        The right acension in decimal degrees
-    decjd : `float`
-        The declination in decimal degrees
+    rajd : float
+        The right acension in decimal degrees.
+    decjd : float
+        The declination in decimal degrees.
 
     Returns
     -------
-    raj : `str`
-        The right acension in sexigesimal format ("HH:MM:SS.SSSS")
-    decj : `str`
-        The declination in sexigesimal format ("DD:MM:SS.SSSS")
+    Tuple[str, str]
+        A tuple containing the following:
+            raj : str
+                The right ascension in sexigesimal format. E.g. "HH:MM:SS.SSSS".
+            decj : str
+                The declination in sexigesimal format. E.g. "DD:MM:SS.SSSS".
     """
     c = SkyCoord(rajd, decjd, frame="icrs", unit=(u.deg, u.deg))
     raj = c.ra.to_string(unit=u.hour, sep=":")
@@ -164,22 +172,24 @@ def decimal_to_sexigesimal(rajd, decjd):
     return raj, decj
 
 
-def sexigesimal_to_decimal(raj, decj):
+def sexigesimal_to_decimal(raj: str, decj: str) -> Tuple[float, float]:
     """Convert sexagesimal coordinates to decimal degrees.
 
     Parameters
     ----------
-    raj : `str`
-        The right acension in sexigesimal format ("HH:MM:SS.SSSS")
-    decj : `str`
-        The declination in sexigesimal format ("DD:MM:SS.SSSS")
+    raj : str
+        The right acension in sexigesimal format. E.g. "HH:MM:SS.SSSS".
+    decj : str
+        The declination in sexigesimal format. E.g. "DD:MM:SS.SSSS".
 
     Returns
     -------
-    rajd : `float`
-        The right acension in decimal degrees
-    decjd : `float`
-        The declination in decimal degrees
+    Tuple[str, str]
+        A tuple containing the following:
+            rajd : str
+                The right ascension in decimal degrees.
+            decj : str
+                The declination in decimal degrees.
     """
     c = SkyCoord(raj, decj, frame="icrs", unit=(u.hourangle, u.deg))
     rajd = c.ra.deg
@@ -187,27 +197,34 @@ def sexigesimal_to_decimal(raj, decj):
     return rajd, decjd
 
 
-def equatorial_to_horizontal(rajd, decjd, gps_epoch):
+def equatorial_to_horizontal(
+    rajd: Union[float, np.ndarray], decjd: Union[float, np.ndarray], gps_epoch: float
+) -> Tuple[
+    Union[float, np.ndarray], Union[float, np.ndarray], Union[float, np.ndarray]
+]:
     """Convert equatorial (RA/DEC) to horizontal (Alt/Az) coordinates.
 
     Parameters
     ----------
-    rajd : `float` or `numpy.array`
-        The right acension in decimal degrees
-    decjd : `float` or `numpy.array`
-        The declination in decimal degrees
-    gps_epoch : `float` or `numpy.array`
-        The gps time of the horizontal coordinates
+    rajd : Union[float, np.ndarray]
+        The right acension(s) in decimal degrees.
+    decjd : Union[float, np.ndarray]
+        The declination(s) in decimal degrees.
+    gps_epoch : float
+        The GPS time to evaluate the horizontal coordinates.
 
     Returns
     -------
-    alt : `float` or `numpy.array`
-        The altitude angle in degrees
-    az : `float` or `numpy.array`
-        The azimuth angle in degrees
-    za : `float` or `numpy.array`
-        The zenith angle in degrees
+    Tuple[ Union[float, np.ndarray], Union[float, np.ndarray], Union[float, np.ndarray] ]
+        A tuple containing the following:
+            alt : Union[float, np.ndarray]
+                The altitude angle(s) in degrees.
+            az : Union[float, np.ndarray]
+                The azimuth angle(s) in degrees.
+            za : Union[float, np.ndarray]
+                The zenith angle(s) in degrees.
     """
+
     eq_pos = SkyCoord(rajd, decjd, unit=(u.deg, u.deg))
     obstime = Time(float(gps_epoch), format="gps")
     earth_location = EarthLocation.from_geodetic(
@@ -220,28 +237,32 @@ def equatorial_to_horizontal(rajd, decjd, gps_epoch):
     return alt, az, za
 
 
-def get_pulsar_coords(pulsar, query, logger=None):
+def get_pulsar_coords(
+    pulsar: str, query: psrqpy.QueryATNF, logger: logging.Logger = None
+) -> Tuple[str, str, float, float]:
     """Get pulsar coordinates from a psrqpy query.
 
     Parameters
     ----------
-    pulsar : `str`
-        Pulsar Jname or Bname
-    query : `query`
-        An instance of the psrqpy.QueryATNF class
-    logger : `logging.Logger`, optional
-        A custom logger to use
+    pulsar : str
+        Pulsar J-name or B-name.
+    query : psrqpy.QueryATNF
+        A psrqpy Query object.
+    logger : logging.Logger, optional
+        A custom logger to use, by default None.
 
     Returns
     -------
-    raj : `str`
-        J2000 right ascension in sexigesimal format
-    decj : `str`
-        J2000 declination in sexigesimal format
-    rajd : `str`
-        J2000 right ascension in decimal degrees format
-    decjd : `str`
-        J2000 declination in decimal degrees format
+    Tuple[str, str, float, float]
+        A tuple containing the following:
+            raj : str
+                The J2000 right ascension in sexigesimal format.
+            decj : str
+                The J2000 declination in sexigesimal format.
+            rajd : float
+                The J2000 right ascension in decimal degrees.
+            decjd : float
+                The J2000 declination in decimal degrees.
     """
     if logger is None:
         logger = logger_setup.get_logger()
@@ -267,26 +288,30 @@ def get_pulsar_coords(pulsar, query, logger=None):
     return raj, decj, rajd, decjd
 
 
-def interpret_coords(coords, logger=None):
+def interpret_coords(
+    coords: str, logger: logging.Logger = None
+) -> Tuple[str, str, float, float]:
     """Interpret source coordinates.
 
     Parameters
     ----------
-    coords : `str`
-        Coordinates in <RA>_<DEC> format, either sexigesimal or decimal
-    logger : `logging.Logger`, optional
-        A custom logger to use
+    coords : str
+        Coordinates in <RA>_<DEC> format, either sexigesimal or decimal.
+    logger : logging.Logger, optional
+        A custom logger to use, by default None.
 
     Returns
     -------
-    raj : `str`
-        J2000 right ascension in sexigesimal format
-    decj : `str`
-        J2000 declination in sexigesimal format
-    rajd : `str`
-        J2000 right ascension in decimal degrees format
-    decjd : `str`
-        J2000 declination in decimal degrees format
+    Tuple[str, str, float, float]
+        A tuple containing the following:
+            raj : str
+                The J2000 right ascension in sexigesimal format.
+            decj : str
+                The J2000 declination in sexigesimal format.
+            rajd : float
+                The J2000 right ascension in decimal degrees.
+            decjd : float
+                The J2000 declination in decimal degrees.
     """
     if logger is None:
         logger = logger_setup.get_logger()
@@ -327,20 +352,30 @@ def interpret_coords(coords, logger=None):
     return raj, decj, rajd, decjd
 
 
-def get_pointings(sources, logger=None):
+def get_pointings(sources: list, logger: logging.Logger = None) -> list:
     """Get source pointing information and store it in dictionary format.
 
     Parameters
     ----------
-    sources : `list`
-        A list of source names
-    logger : `logging.Logger`, optional
-        A custom logger to use
+    sources : list
+        A list of source names.
+    logger : logging.Logger, optional
+        A custom logger to use, by default None.
 
     Returns
     -------
-    pointings : `list`
-        A list of dictionaries with the following items: Name, RAJ, DEC, RAJD, DECJD
+    list
+        A list of dictionaries, each with the following items:
+            Name : str
+                The source name.
+            RAJ : str
+                The J2000 right ascension in sexigesimal format.
+            DEC : str
+                The J2000 declination in sexigesimal format.
+            RAJD : float
+                The J2000 right ascension in decimal degrees.
+            DECJD : float
+                The J2000 declination in decimal degrees.
     """
     if logger is None:
         logger = logger_setup.get_logger()
@@ -376,18 +411,28 @@ def get_pointings(sources, logger=None):
     return pointings
 
 
-def get_atnf_pulsars(logger=None):
+def get_atnf_pulsars(logger: logging.Logger = None) -> list:
     """Get source pointing information from the ATNF pulsar catalogue.
 
     Parameters
     ----------
-    logger : `logging.Logger`, optional
-        A custom logger to use
+    logger : logging.Logger, optional
+        A custom logger to use, by default None.
 
     Returns
     -------
-    pointings : `list`
-        A list of dictionaries with the following items: Name, RAJ, DEC, RAJD, DECJD
+    list
+        A list of dictionaries, each with the following items:
+            Name : str
+                The source name.
+            RAJ : str
+                The J2000 right ascension in sexigesimal format.
+            DEC : str
+                The J2000 declination in sexigesimal format.
+            RAJD : float
+                The J2000 right ascension in decimal degrees.
+            DECJD : float
+                The J2000 declination in decimal degrees.
     """
     if logger is None:
         logger = logger_setup.get_logger()

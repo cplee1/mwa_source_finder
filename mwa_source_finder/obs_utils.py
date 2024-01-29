@@ -1,3 +1,4 @@
+import logging
 import time
 import json
 import urllib
@@ -6,35 +7,39 @@ from mwa_source_finder import logger_setup
 
 
 def get_metadata(
-    servicetype="metadata",
-    service="obs",
-    params=None,
-    retries=3,
-    retry_http_error=False,
-    logger=None,
-):
+    servicetype: str = "metadata",
+    service: str = "obs",
+    params: dict = None,
+    retries: int = 3,
+    retry_http_error: bool = False,
+    logger: logging.Logger = None,
+) -> dict:
     """Function to call a JSON web service to perform an MWA metadata call.
-    Taken verbatim from http://mwa-lfd.haystack.mit.edu/twiki/bin/view/Main/MetaDataWeb.
 
     Parameters
     ----------
-    servicetype : `str`
+    servicetype : str, optional
         Either the 'observation' which makes human readable html pages or
-        'metadata' which returns data (Default: 'metadata')
-    service : `str`
-        The meta data service out of ['obs', 'find', 'con'] (Default: 'obs')
-            obs: Returns details about a single observation
-            find: Search the database for observations that satisfy given criteria
-            con: Finds the configuration information for an observation
-    params : `dict`
-        A dictionary of the options to use in the metadata call which is dependent on the service
-    retries : `int`, optional
-        The number of times to retry timeout errors (Default: 3)
+        'metadata' which returns data, by default 'metadata'.
+    service : str, optional
+        The meta data service out of ['obs', 'find', 'con'], by default 'obs'.
+            obs: Returns details about a single observation.
+            find: Search the database for observations that satisfy given criteria.
+            con: Finds the configuration information for an observation.
+    params : dict, optional
+        A dictionary of the options to use in the metadata call which is dependent
+        on the service, by default None.
+    retries : int, optional
+        The number of times to retry timeout errors, by default 3.
+    retry_http_error : bool, optional
+        Whether to retry the request after a HTTP error, by default False.
+    logger : logging.Logger, optional
+        A custom logger to use, by default None.
 
     Returns
     -------
-    result : `dict`
-        The result for that service
+    dict
+        The result for that service.
     """
     # Append the service name to this base URL, eg 'con', 'obs', etc.
     BASEURL = "http://ws.mwatelescope.org/"
@@ -48,7 +53,7 @@ def get_metadata(
     # Try several times (3 by default)
     wait_time = 30
     result = None
-    for x in range(0, retries):
+    for _ in range(0, retries):
         err = False
         try:
             result = json.load(
@@ -80,34 +85,32 @@ def get_metadata(
     return result
 
 
-def get_common_metadata(obsid, logger=None):
+def get_common_metadata(obsid: int, logger: logging.Logger = None) -> dict:
     """Get observation metadata and extract some commonly used data.
 
     Parameters
     ----------
-    obsid : `int`
-        The observation ID
-    logger : `logging.Logger`, optional
-        A custom logger to use
+    obsid : int
+        The observation ID.
+    logger : logging.Logger, optional
+        A custom logger to use, by default None.
 
     Returns
     -------
-    common_metadata : `dict`
-
-        duration : `int`
-            The observation duration in seconds
-        delays : `list`
-            [xdelays, ydelays]
-
-            xdelays : `list`
-                The delays for the X polarisation
-            ydelays : 'list'
-                The delays for the Y polarisation
-
-        channels : `list`
-            The frequency channels in MHz
-        centrefreq : `float`
-            The centre frequency in MHz
+    dict
+        A dictionary of commonly used metadata:
+            duration : int
+                The observation duration in seconds.
+            delays : list
+                A list with two items:
+                    xdelays : list
+                        The delays for the X polarisation.
+                    ydelays : list
+                        The delays for the Y polarisation.
+            channels : list
+                The frequency channels in MHz.
+            centrefreq : float
+                The centre frequency in MHz.
     """
     if logger is None:
         logger = logger_setup.get_logger()
@@ -128,20 +131,20 @@ def get_common_metadata(obsid, logger=None):
     return common_metadata
 
 
-def get_all_obsids(pagesize=50, logger=None):
-    """Loops over pages for each page for MWA metadata calls
+def get_all_obsids(pagesize: int = 50, logger: logging.Logger = None) -> list:
+    """Loops over pages for each page for MWA metadata calls.
 
     Parameters
     ----------
-    pagesize : `int`
-        Size of page to query at a time
-    logger : `logging.Logger`, optional
-        A custom logger to use
+    pagesize : int
+        Size of the page to query at a time.
+    logger : logging.Logger, optional
+        A custom logger to use, by default None.
 
     Returns
     -------
-    obsids : `list`
-        List of the MWA observation IDs
+    obsids : list
+        A list of the MWA observation IDs.
     """
     if logger is None:
         logger = logger_setup.get_logger()

@@ -123,7 +123,7 @@ def main():
         args.obsids,
         obs_for_source=args.obs_for_source,
         offset=args.offset,
-        dt=args.dt,
+        input_dt=args.dt,
         min_z_power=args.min_z_power,
         norm_to_zenith=args.norm_to_zenith,
         logger=logger,

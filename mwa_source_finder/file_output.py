@@ -1,4 +1,6 @@
-#TODO: Prepend descriptions to header
+# TODO: Prepend descriptions to header
+
+import logging
 
 import numpy as np
 from astropy.table import Table
@@ -6,7 +8,16 @@ from astropy.table import Table
 from mwa_source_finder import logger_setup
 
 
-def write_output_source_files(finder_result, logger=None):
+def write_output_source_files(finder_result: dict, logger: logging.Logger = None):
+    """Write finder results for each source.
+
+    Parameters
+    ----------
+    finder_result : dict
+        A dictionary containing the results organised by source.
+    logger : logging.Logger, optional
+        A custom logger to use, by default None.
+    """
     if logger is None:
         logger = logger_setup.get_logger()
 
@@ -38,7 +49,16 @@ def write_output_source_files(finder_result, logger=None):
         data.write(out_file, format="ascii.fixed_width_two_line", overwrite=True)
 
 
-def write_output_obs_files(finder_result, logger=None):
+def write_output_obs_files(finder_result: dict, logger: logging.Logger = None):
+    """Write finder results for each observation.
+
+    Parameters
+    ----------
+    finder_result : dict
+        A dictionary containing the results organised by observation ID.
+    logger : logging.Logger, optional
+        A custom logger to use, by default None.
+    """
     if logger is None:
         logger = logger_setup.get_logger()
 
