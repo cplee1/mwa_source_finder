@@ -67,7 +67,8 @@ def get_beam_power_over_time(
         beam = mwa_hyperbeam.FEEBeam()
     else:
         logger.error(
-            "MWA_BEAM_FILE environment variable not set! Please set to location of 'mwa_full_embedded_element_pattern.h5' file"
+            "MWA_BEAM_FILE environment variable not set! Please set to the "
+            + "location of 'mwa_full_embedded_element_pattern.h5' file"
         )
         sys.exit(1)
 
@@ -340,20 +341,25 @@ def find_sources_in_obs(
                     source_name : str
                         The source name.
                     enter_beam : float
-                        The fraction of the observation where the source enters the beam.
+                        The fraction of the observation where the source enters
+                        the beam.
                     exit_beam : float
-                        The fraction of the observation where the source exits the beam.
+                        The fraction of the observation where the source exits
+                        the beam.
                     max_power : float
                         The maximum power reached within the beam.
 
-                If obs_for_source is True, the dictionary is ordered by source name and contains a list of lists, each with:
+                If obs_for_source is True, the dictionary is ordered by source
+                name and contains a list of lists, each with:
 
                     obsid : int
                         The observation ID.
                     enter_beam : float
-                        The fraction of the observation where the source enters the beam.
+                        The fraction of the observation where the source enters
+                        the beam.
                     exit_beam : float
-                        The fraction of the observation where the source exits the beam.
+                        The fraction of the observation where the source exits
+                        the beam.
                     max_power: float
                         The maximum power reached within the beam.
 
@@ -377,8 +383,8 @@ def find_sources_in_obs(
                         The centre frequency in MHz.
 
             pointings : list
-                A dictionary of dictionaries, organised by source name, each with the
-                following items:
+                A dictionary of dictionaries, organised by source name, each
+                with the following items:
 
                     RAJ : str
                         The J2000 right ascension in sexigesimal format.
