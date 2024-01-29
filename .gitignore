@@ -1,2 +1,4 @@
 __pycache__
-source_finder
+build/
+dist/
+*.egg-info/

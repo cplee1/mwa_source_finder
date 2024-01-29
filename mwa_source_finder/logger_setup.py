@@ -1,9 +1,14 @@
-#!/usr/bin/env python
-
 import logging
 
 
-def get_log_levels():
+def get_log_levels() -> dict:
+    """Get all available logging levels.
+
+    Returns
+    -------
+    dict
+        A dictionary containing all available logging levels.
+    """
     return dict(
         DEBUG=logging.DEBUG,
         INFO=logging.INFO,
@@ -13,21 +18,21 @@ def get_log_levels():
     )
 
 
-def get_logger(loglvl=logging.INFO):
+def get_logger(loglvl: int = logging.INFO) -> logging.Logger:
     """Initialise a custom logger.
 
     Parameters
     ----------
-    loglvl : level
-        The logging level
+    loglvl : int, optional
+        The logging level, by default logging.INFO.
 
     Returns
     -------
-    logger : logger
-        An intance of the logging.Logger class
+    logging.Logger
+        A customised logger object.
     """
     logger = logging.getLogger(__name__)
-    formatter = logging.Formatter('%(asctime)s %(name)s %(lineno)-4d %(levelname)-9s :: %(message)s')
+    formatter = logging.Formatter("%(asctime)s %(levelname)-9s :: %(message)s")
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
     logger.setLevel(loglvl)
