@@ -109,6 +109,8 @@ def get_common_metadata(obsid: int, logger: logging.Logger = None) -> dict:
                         The delays for the Y polarisation.
             channels : list
                 The frequency channels in MHz.
+            bandwidth : float
+                The bandwidth in MHz.
             centrefreq : float
                 The centre frequency in MHz.
     """

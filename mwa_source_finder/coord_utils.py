@@ -161,6 +161,7 @@ def decimal_to_sexigesimal(rajd: float, decjd: float) -> Tuple[str, str]:
     -------
     Tuple[str, str]
         A tuple containing the following:
+
             raj : str
                 The right ascension in sexigesimal format. E.g. "HH:MM:SS.SSSS".
             decj : str
@@ -186,6 +187,7 @@ def sexigesimal_to_decimal(raj: str, decj: str) -> Tuple[float, float]:
     -------
     Tuple[str, str]
         A tuple containing the following:
+
             rajd : str
                 The right ascension in decimal degrees.
             decj : str
@@ -217,6 +219,7 @@ def equatorial_to_horizontal(
     -------
     Tuple[ Union[float, np.ndarray], Union[float, np.ndarray], Union[float, np.ndarray] ]
         A tuple containing the following:
+
             alt : Union[float, np.ndarray]
                 The altitude angle(s) in degrees.
             az : Union[float, np.ndarray]
@@ -255,6 +258,7 @@ def get_pulsar_coords(
     -------
     Tuple[str, str, float, float]
         A tuple containing the following:
+
             raj : str
                 The J2000 right ascension in sexigesimal format.
             decj : str
@@ -304,6 +308,7 @@ def interpret_coords(
     -------
     Tuple[str, str, float, float]
         A tuple containing the following:
+
             raj : str
                 The J2000 right ascension in sexigesimal format.
             decj : str
@@ -366,6 +371,7 @@ def get_pointings(sources: list, logger: logging.Logger = None) -> list:
     -------
     list
         A list of dictionaries, each with the following items:
+
             Name : str
                 The source name.
             RAJ : str
@@ -423,6 +429,7 @@ def get_atnf_pulsars(logger: logging.Logger = None) -> list:
     -------
     list
         A list of dictionaries, each with the following items:
+
             Name : str
                 The source name.
             RAJ : str

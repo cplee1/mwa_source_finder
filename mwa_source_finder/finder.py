@@ -34,6 +34,7 @@ def get_beam_power_over_time(
         The observation ID.
     metadata : dict
         A dictionary of metadata containing at minimum:
+
             duration : int
                 The observation duration in seconds.
             delays : list
@@ -44,6 +45,7 @@ def get_beam_power_over_time(
                         The delays for the Y polarisation.
             channels : list
                 The frequency channels in MHz.
+
     offset : int, optional
         Offset from the start of the observation in seconds, by default 0.
     dt : float, optional
@@ -147,6 +149,7 @@ def beam_enter_exit(
     -------
     Tuple[float, float]
         A tuple containing the following:
+
             enter_beam : float
                 The fraction of the observation where the source enters the beam.
             exit_beam : float
@@ -203,16 +206,19 @@ def source_beam_coverage(
     ----------
     pointings : list
         A list of pointing dictionaries containing at minimum:
+
             Name : str
                 The source name.
             RAJD : float
                 The J2000 right ascension in decimal degrees.
             DECJD : float
                 The J2000 declination in decimal degrees.
+
     obsids : list
         A list of observation IDs.
     obs_metadata_dict : dict
         A dictionary of metadata dictionaries (obs ID keys), each with at minimum:
+
             duration : int
                 The observation duration in seconds.
             delays : list
@@ -223,6 +229,7 @@ def source_beam_coverage(
                         The delays for the Y polarisation.
             channels : list
                 The frequency channels in MHz.
+
     offset : int, optional
         Offset from the start of the observation in seconds, by default 0.
     input_dt : float, optional
@@ -294,7 +301,7 @@ def find_sources_in_obs(
     obsids: list,
     obs_for_source: bool = False,
     offset: int = 0,
-    input_dt: float = 60.,
+    input_dt: float = 60.0,
     min_z_power: float = 0.3,
     norm_to_zenith: bool = True,
     logger: logging.Logger = None,
@@ -324,12 +331,63 @@ def find_sources_in_obs(
     -------
     Tuple[dict, dict]
         A tuple containing the following:
+
             output_data : dict
-                A dictionary containing the results, organised by either source
-                or observation ID.
+                A dictionary containing the results. If obs_for_source is False,
+                the dictionary is ordered by obs ID and contains a list of
+                lists, each with:
+
+                    source_name : str
+                        The source name.
+                    enter_beam : float
+                        The fraction of the observation where the source enters the beam.
+                    exit_beam : float
+                        The fraction of the observation where the source exits the beam.
+                    max_power : float
+                        The maximum power reached within the beam.
+
+                If obs_for_source is True, the dictionary is ordered by source name and contains a list of lists, each with:
+
+                    obsid : int
+                        The observation ID.
+                    enter_beam : float
+                        The fraction of the observation where the source enters the beam.
+                    exit_beam : float
+                        The fraction of the observation where the source exits the beam.
+                    max_power: float
+                        The maximum power reached within the beam.
+
             obs_metadata_dict : dict
                 A dictionary containing common metadata for each observation,
-                organised by observation ID.
+                organised by observation ID, each with the following items:
+
+                    duration : int
+                        The observation duration in seconds.
+                    delays : list
+                        A list with two items:
+                            xdelays : list
+                                The delays for the X polarisation.
+                            ydelays : list
+                                The delays for the Y polarisation.
+                    channels : list
+                        The frequency channels in MHz.
+                    bandwidth : float
+                        The bandwidth in MHz.
+                    centrefreq : float
+                        The centre frequency in MHz.
+
+            pointings : list
+                A dictionary of dictionaries, organised by source name, each with the
+                following items:
+
+                    RAJ : str
+                        The J2000 right ascension in sexigesimal format.
+                    DEC : str
+                        The J2000 declination in sexigesimal format.
+                    RAJD : float
+                        The J2000 right ascension in decimal degrees.
+                    DECJD : float
+                        The J2000 declination in decimal degrees.
     """
     if logger is None:
         logger = logger_setup.get_logger()
@@ -390,18 +448,7 @@ def find_sources_in_obs(
             for obsid in obsids:
                 if source_name in beam_coverage[obsid]:
                     enter_beam, exit_beam, max_power = beam_coverage[obsid][source_name]
-                    obs_metadata = obs_metadata_dict[obsid]
-                    source_data.append(
-                        [
-                            obsid,
-                            enter_beam,
-                            exit_beam,
-                            max_power,
-                            obs_metadata["duration"],
-                            obs_metadata["centrefreq"],
-                            obs_metadata["bandwidth"],
-                        ]
-                    )
+                    source_data.append([obsid, enter_beam, exit_beam, max_power])
             output_data[source_name] = source_data
     else:
         for obsid in obsids:
@@ -412,4 +459,5 @@ def find_sources_in_obs(
                     enter_beam, exit_beam, max_power = beam_coverage[obsid][source_name]
                     obsid_data.append([source_name, enter_beam, exit_beam, max_power])
             output_data[obsid] = obsid_data
+
     return output_data, obs_metadata_dict

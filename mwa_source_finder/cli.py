@@ -130,6 +130,10 @@ def main():
     )
 
     if args.obs_for_source:
-        file_output.write_output_source_files(finder_result, logger=logger)
+        file_output.write_output_source_files(
+            finder_result, obs_metadata_dict, args.min_z_power, logger=logger
+        )
     else:
-        file_output.write_output_obs_files(finder_result, logger=logger)
+        file_output.write_output_obs_files(
+            finder_result, obs_metadata_dict, args.min_z_power, logger=logger
+        )
