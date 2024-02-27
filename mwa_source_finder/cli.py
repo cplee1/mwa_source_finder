@@ -65,10 +65,16 @@ def main():
         help="A list of obs IDs to search.",
     )
     obs_args.add_argument(
-        "--offset",
-        type=int,
-        default=0,
-        help="Offset from the start of the observation in seconds.",
+        "--start",
+        type=float,
+        default=0.0,
+        help="Start time of the search, as a fraction of the full observation.",
+    )
+    obs_args.add_argument(
+        "--end",
+        type=float,
+        default=1.0,
+        help="End time of the search, as a fraction of the full observation.",
     )
     finder_args = parser.add_argument_group(
         "Finder functionality arguments",
@@ -83,13 +89,20 @@ def main():
         "--dt", type=float, default=60, help="Step size in time for beam modelling."
     )
     finder_args.add_argument(
-        "--min_z_power",
+        "--min_power",
         type=float,
         default=0.3,
-        help="Minimum zenith-normalised power to count as in the beam.",
+        help="Minimum power to count as in the beam. If a normalisation mode is "
+        + "selected, then this will be interpreted as a normalised power.",
     )
     finder_args.add_argument(
-        "--norm_to_zenith", action="store_false", help="Normalise the powers to zenith."
+        "--norm_mode",
+        type=str,
+        choices=["none", "zenith", "beam"],
+        default="zenith",
+        help="Beam power normalisation mode. 'none': no normalisation. "
+        + "'zenith': normalise to power at zenith. "
+        + "'beam': normalise to maximum power in the beam.",
     )
     args = parser.parse_args()
 
@@ -99,6 +112,20 @@ def main():
     if not args.sources and not args.sources_file and not args.obsids:
         logger.error("No sources or observations specified.")
         sys.exit(1)
+
+    if args.norm_mode in ["zenith", "beam"]:
+        if args.min_power < 0.0 or args.min_power > 1.0:
+            logger.error("Normalised power must be between 0 and 1.")
+            sys.exit(1)
+        norm = True
+    else:
+        norm = False
+
+    if args.norm_mode == "beam":
+        logger.error("'beam' normalisation mode is not yet implemented.")
+        sys.exit(1)
+
+    # TODO: Ask user if to use --obs_for_source if no obsid is given
 
     # Decide whether to parse user provided source list or use the full catalogue
     if args.sources or args.sources_file:
@@ -118,22 +145,38 @@ def main():
         sources = None
 
     # Run the source finder
-    finder_result, obs_metadata_dict = finder.find_sources_in_obs(
+    (
+        finder_result,
+        beam_coverage,
+        pointings,
+        obs_metadata_dict,
+    ) = finder.find_sources_in_obs(
         sources,
         args.obsids,
+        args.start,
+        args.end,
         obs_for_source=args.obs_for_source,
-        offset=args.offset,
         input_dt=args.dt,
-        min_z_power=args.min_z_power,
-        norm_to_zenith=args.norm_to_zenith,
+        norm_mode=args.norm_mode,
+        min_power=args.min_power,
         logger=logger,
     )
 
     if args.obs_for_source:
         file_output.write_output_source_files(
-            finder_result, obs_metadata_dict, args.min_z_power, logger=logger
+            finder_result, obs_metadata_dict, args.min_power, logger=logger
+        )
+
+        file_output.plot_power_vs_time(
+            pointings,
+            obs_metadata_dict,
+            beam_coverage,
+            args.obs_for_source,
+            args.min_power,
+            norm,
+            logger=logger,
         )
     else:
         file_output.write_output_obs_files(
-            finder_result, obs_metadata_dict, args.min_z_power, logger=logger
+            finder_result, obs_metadata_dict, args.min_power, logger=logger
         )

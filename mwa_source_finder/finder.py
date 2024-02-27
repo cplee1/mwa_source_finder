@@ -14,7 +14,8 @@ def get_beam_power_over_time(
     pointings: list,
     obsid: int,
     metadata: dict,
-    offset: int = 0,
+    t_start: float = 0.0,
+    t_end: float = 1.0,
     dt: float = 60.0,
     norm_to_zenith: bool = True,
     logger: logging.Logger = None,
@@ -46,12 +47,14 @@ def get_beam_power_over_time(
             channels : list
                 The frequency channels in MHz.
 
-    offset : int, optional
-        Offset from the start of the observation in seconds, by default 0.
+    t_start : float
+        The start time to search, as a fraction of the full observation.
+    t_end : float
+        The end time to search, as a fraction of the full observation.
     dt : float, optional
         The step size in time to evaluate the power at, by default 60.
     norm_to_zenith : bool, optional
-        Whether to normalise to the power at zenith, by default True.
+        Whether to normalise powers to zenith, by default True
     logger : logging.Logger, optional
         A custom logger to use, by default None.
 
@@ -73,7 +76,9 @@ def get_beam_power_over_time(
         sys.exit(1)
 
     # Work out the time steps to model
-    start_times = np.arange(offset, metadata["duration"] + offset, dt)
+    t_start_sec = t_start * metadata["duration"]
+    t_end_sec = t_end * metadata["duration"]
+    start_times = np.arange(t_start_sec, t_end_sec, dt)
     stop_times = start_times + dt
     stop_times[stop_times > metadata["duration"]] = metadata["duration"]
     centre_times = float(obsid) + 0.5 * (start_times + stop_times)
@@ -128,7 +133,7 @@ def beam_enter_exit(
     powers: np.ndarray,
     duration: int,
     dt: float = 60.0,
-    min_z_power: float = 0.3,
+    min_power: float = 0.3,
     logger: logging.Logger = None,
 ) -> Tuple[float, float]:
     """Find where a source enters and exits the beam.
@@ -141,8 +146,8 @@ def beam_enter_exit(
         The observation duration in seconds.
     dt : float, optional
         The step size in time, by default 60.
-    min_z_power : float, optional
-        The minimum zenith-normalised power, by default 0.3.
+    min_power : float, optional
+        The minimum power to count as in the beam. By default 0.3.
     logger : logging.Logger, optional
         A custom logger to use, by default None.
 
@@ -162,17 +167,12 @@ def beam_enter_exit(
     time_steps = np.array(np.arange(0, duration, dt), dtype=float)
     powers_freq_min = np.empty(shape=(len(powers)), dtype=float)
     for pi, p in enumerate(powers):
-        powers_freq_min[pi] = float(min(p) - min_z_power)
+        powers_freq_min[pi] = float(min(p) - min_power)
     if np.min(powers_freq_min) > 0.0:
         enter_beam = 0.0
         exit_beam = 1.0
     else:
         spline = interpolate.UnivariateSpline(time_steps, powers_freq_min, s=0.0)
-        # try:
-        #     spline = interpolate.UnivariateSpline(time_steps, powers_freq_min, s=0.0)
-        # except ValueError:
-        #     logger.error("Could not fit Univariate Spline")
-        #     return None, None
         if len(spline.roots()) == 2:
             enter_beam, exit_beam = spline.roots()
             enter_beam /= duration
@@ -194,10 +194,11 @@ def source_beam_coverage(
     pointings: list,
     obsids: list,
     obs_metadata_dict: dict,
-    offset: int = 0,
+    t_start: float = 0.0,
+    t_end: float = 1.0,
     input_dt: float = 60.0,
-    min_z_power: float = 0.3,
-    norm_to_zenith: bool = True,
+    norm_mode: str = "zenith",
+    min_power: float = 0.3,
     logger: logging.Logger = None,
 ) -> dict:
     """For lists of pointings and observations, find where each source each
@@ -231,14 +232,17 @@ def source_beam_coverage(
             channels : list
                 The frequency channels in MHz.
 
-    offset : int, optional
-        Offset from the start of the observation in seconds, by default 0.
+    t_start : float
+        The start time to search, as a fraction of the full observation.
+    t_end : float
+        The end time to search, as a fraction of the full observation.
     input_dt : float, optional
         The input step size in time (may be reduced), by default 60.
-    min_z_power : float, optional
-        The minimum zenith-normalised power, by default 0.3.
-    norm_to_zenith : bool, optional
-        Whether to normalise to the power at zenith, by default True.
+    norm_mode : str, optional
+        The normalisation mode, by default 'zenith'.
+    min_power : float, optional
+        The minimum power to count as in the beam. If a normalisation mode is
+        selected, then this will be interpreted as a normalised power. By default 0.3.
     logger : logging.Logger, optional
         A custom logger to use, by default None.
 
@@ -257,6 +261,11 @@ def source_beam_coverage(
     if logger is None:
         logger = logger_setup.get_logger()
 
+    if norm_mode == "zenith":
+        norm_to_zenith = True
+    else:
+        norm_to_zenith = False
+
     beam_coverage = dict()
     for obsid in obsids:
         beam_coverage[obsid] = dict()
@@ -274,25 +283,28 @@ def source_beam_coverage(
             pointings,
             obsid,
             obs_metadata,
-            offset=offset,
+            t_start=t_start,
+            t_end=t_end,
             dt=dt,
             norm_to_zenith=norm_to_zenith,
             logger=logger,
         )
+
         logger.debug(f"Obs ID {obsid}: Getting enter and exit times")
         for source_obs_power, pointing in zip(powers, pointings):
-            if np.max(source_obs_power) > min_z_power:
+            if np.max(source_obs_power) > min_power:
                 beam_enter, beam_exit = beam_enter_exit(
                     source_obs_power,
                     obs_metadata["duration"],
                     dt=dt,
-                    min_z_power=min_z_power,
+                    min_power=min_power,
                     logger=logger,
                 )
                 beam_coverage[obsid][pointing["Name"]] = [
                     beam_enter,
                     beam_exit,
                     np.amax(source_obs_power),
+                    source_obs_power,
                 ]
     return beam_coverage
 
@@ -300,11 +312,12 @@ def source_beam_coverage(
 def find_sources_in_obs(
     sources: list,
     obsids: list,
+    t_start: float = 0.0,
+    t_end: float = 1.0,
     obs_for_source: bool = False,
-    offset: int = 0,
     input_dt: float = 60.0,
-    min_z_power: float = 0.3,
-    norm_to_zenith: bool = True,
+    norm_mode: str = "zenith",
+    min_power: float = 0.3,
     logger: logging.Logger = None,
 ) -> Tuple[dict, dict]:
     """Find sources in observations.
@@ -315,16 +328,19 @@ def find_sources_in_obs(
         A list of sources.
     obsids : list
         A list of obs IDs.
+    t_start : float
+        The start time to search, as a fraction of the full observation.
+    t_end : float
+        The end time to search, as a fraction of the full observation.
     obs_for_source : bool, optional
         Whether to search for observations for each source, by default False.
-    offset : int, optional
-        Offset from the start of the observation in seconds, by default 0.
     input_dt : float, optional
         The input step size in time (may be reduced), by default 60.
-    min_z_power : float, optional
-        The minimum zenith-normalised power, by default 0.3.
-    norm_to_zenith : bool, optional
-        Whether to normalise to the power at zenith, by default True.
+    norm_mode : str, optional
+        The normalisation mode, by default 'zenith'.
+    min_power : float, optional
+        The minimum power to count as in the beam. If a normalisation mode is
+        selected, then this will be interpreted as a normalised power. By default 0.3.
     logger : logging.Logger, optional
         A custom logger to use, by default None.
 
@@ -429,9 +445,9 @@ def find_sources_in_obs(
         obsids = obs_utils.get_all_obsids(logger=logger)
         logger.info(f"{len(obsids)} observations found")
 
-    logger.info("Obtaining metadata for observations...")
     obs_metadata_dict = dict()
     for obsid in obsids:
+        logger.info(f"Obtaining metadata for obs ID: {obsid}")
         obs_metadata_dict[obsid] = obs_utils.get_common_metadata(obsid, logger)
 
     logger.info("Finding sources in beams...")
@@ -439,10 +455,11 @@ def find_sources_in_obs(
         pointings,
         obsids,
         obs_metadata_dict,
-        offset=offset,
+        t_start=t_start,
+        t_end=t_end,
         input_dt=input_dt,
-        min_z_power=min_z_power,
-        norm_to_zenith=norm_to_zenith,
+        norm_mode=norm_mode,
+        min_power=min_power,
         logger=logger,
     )
 
@@ -453,7 +470,9 @@ def find_sources_in_obs(
             source_data = []
             for obsid in obsids:
                 if source_name in beam_coverage[obsid]:
-                    enter_beam, exit_beam, max_power = beam_coverage[obsid][source_name]
+                    enter_beam, exit_beam, max_power, _ = beam_coverage[obsid][
+                        source_name
+                    ]
                     source_data.append([obsid, enter_beam, exit_beam, max_power])
             output_data[source_name] = source_data
     else:
@@ -462,8 +481,10 @@ def find_sources_in_obs(
             for pointing in pointings:
                 source_name = pointing["Name"]
                 if source_name in beam_coverage[obsid]:
-                    enter_beam, exit_beam, max_power = beam_coverage[obsid][source_name]
+                    enter_beam, exit_beam, max_power, _ = beam_coverage[obsid][
+                        source_name
+                    ]
                     obsid_data.append([source_name, enter_beam, exit_beam, max_power])
             output_data[obsid] = obsid_data
 
-    return output_data, obs_metadata_dict
+    return output_data, beam_coverage, pointings, obs_metadata_dict
