@@ -15,6 +15,8 @@ def main():
         add_help=False,
     )
     loglevels = logger_setup.get_log_levels()
+
+    # Program arguments
     optional = parser.add_argument_group("Program arguments")
     optional.add_argument(
         "-h", "--help", action="help", help="Show this help information and exit."
@@ -27,6 +29,8 @@ def main():
         default="INFO",
         help="Logger verbosity level.",
     )
+
+    # Source arguments
     source_args = parser.add_argument_group(
         "Source arguments",
         "Options to specify the source(s) to find. The default is all pulsars.",
@@ -51,6 +55,8 @@ def main():
         help="A file containing a list of sources to find. Each source should be "
         + "listed on a new line. The source format is the same as the -s option.",
     )
+
+    # Observation arguments
     obs_args = parser.add_argument_group(
         "Observation arguments",
         "Options to specify the observation(s) to search. The default is all VCS "
@@ -76,6 +82,8 @@ def main():
         default=1.0,
         help="End time of the search, as a fraction of the full observation.",
     )
+
+    # Functionality arguments
     finder_args = parser.add_argument_group(
         "Finder functionality arguments",
         "Options to specify how source(s) or observation(s) are found.",
@@ -98,12 +106,21 @@ def main():
     finder_args.add_argument(
         "--norm_mode",
         type=str,
-        choices=["none", "zenith", "beam"],
+        choices=["zenith", "beam"],
         default="zenith",
-        help="Beam power normalisation mode. 'none': no normalisation. "
-        + "'zenith': normalise to power at zenith. "
-        + "'beam': normalise to maximum power in the beam.",
+        help="Beam power normalisation mode. 'zenith' will normalise to power at zenith. "
+        + "'beam' will normalise to the peak of the primary beam.",
     )
+    finder_args.add_argument(
+        "--freq_mode",
+        type=str,
+        choices=["low", "centre", "high"],
+        default="centre",
+        help="Which frequency to use to compute the beam power. 'low' will use the "
+        + "lowest frequency (most generous). 'centre' will use the centre frequency. "
+        + "'high' will use the highest frequency (most conservative)."
+    )
+
     args = parser.parse_args()
 
     # Initialise the logger
@@ -113,13 +130,9 @@ def main():
         logger.error("No sources or observations specified.")
         sys.exit(1)
 
-    if args.norm_mode in ["zenith", "beam"]:
-        if args.min_power < 0.0 or args.min_power > 1.0:
-            logger.error("Normalised power must be between 0 and 1.")
-            sys.exit(1)
-        norm = True
-    else:
-        norm = False
+    if args.min_power < 0.0 or args.min_power > 1.0:
+        logger.error("Normalised power must be between 0 and 1.")
+        sys.exit(1)
 
     if args.norm_mode == "beam":
         logger.error("'beam' normalisation mode is not yet implemented.")
@@ -159,10 +172,12 @@ def main():
         input_dt=args.dt,
         norm_mode=args.norm_mode,
         min_power=args.min_power,
+        freq_mode=args.freq_mode,
         logger=logger,
     )
 
     if args.obs_for_source:
+        print(finder_result)
         file_output.write_output_source_files(
             finder_result, obs_metadata_dict, args.min_power, logger=logger
         )
@@ -171,9 +186,7 @@ def main():
             pointings,
             obs_metadata_dict,
             beam_coverage,
-            args.obs_for_source,
             args.min_power,
-            norm,
             logger=logger,
         )
     else:

@@ -63,24 +63,24 @@ def get_metadata(
             )
         except urllib.error.HTTPError as err:
             logger.error(
-                "HTTP error from server: code=%d, response: %s" % (err.code, err.read())
+                f"HTTP error from server: code={err.code}, response: {err.read()}"
             )
             if retry_http_error:
-                logger.error("Waiting {} seconds and trying again".format(wait_time))
+                logger.error(f"Waiting {wait_time} seconds and trying again")
                 time.sleep(wait_time)
                 pass
             else:
-                raise err
+                logger.error(err)
                 break
         except urllib.error.URLError as err:
-            logger.error("URL or network error: %s" % err.reason)
-            logger.error("Waiting {} seconds and trying again".format(wait_time))
+            logger.error(f"URL or network error: {err.reason}")
+            logger.error(f"Waiting {wait_time} seconds and trying again")
             time.sleep(wait_time)
             pass
         else:
             break
     else:
-        logger.error("Tried {} times. Exiting.".format(retries))
+        logger.error(f"Tried {retries} times. Exiting.")
 
     return result
 
@@ -118,11 +118,20 @@ def get_common_metadata(obsid: int, logger: logging.Logger = None) -> dict:
         logger = logger_setup.get_logger()
 
     metadata = get_metadata(service="obs", params={"obs_id": obsid}, logger=logger)
-    minfreq = float(min(metadata["rfstreams"]["0"]["frequencies"]))
-    maxfreq = float(max(metadata["rfstreams"]["0"]["frequencies"]))
-    xdelays = metadata["rfstreams"]["0"]["xdelays"]
-    ydelays = metadata["rfstreams"]["0"]["ydelays"]
-    channels = metadata["rfstreams"]["0"]["frequencies"]
+    if metadata is None:
+        logger.error(f"Could not get metadata for obs ID: {obsid}")
+        return None
+
+    try:
+        minfreq = float(min(metadata["rfstreams"]["0"]["frequencies"]))
+        maxfreq = float(max(metadata["rfstreams"]["0"]["frequencies"]))
+        xdelays = metadata["rfstreams"]["0"]["xdelays"]
+        ydelays = metadata["rfstreams"]["0"]["ydelays"]
+        channels = metadata["rfstreams"]["0"]["frequencies"]
+    except KeyError:
+        logger.error(f"Incomplete metadata for obs ID: {obsid}")
+        return None
+
     common_metadata = dict(
         duration=metadata["stoptime"] - metadata["starttime"],
         delays=[xdelays, ydelays],
@@ -153,10 +162,10 @@ def get_all_obsids(pagesize: int = 50, logger: logging.Logger = None) -> list:
 
     legacy_params = {"mode": "VOLTAGE_START"}
     mwax_params = {"mode": "MWAX_VCS"}
+    obsids = []
     for params in [legacy_params, mwax_params]:
         logger.debug(f"Searching {params['mode']} observations")
         params["pagesize"] = pagesize
-        obsids = []
         temp = []
         page = 1
         # Need to ask for a page of results at a time

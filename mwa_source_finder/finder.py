@@ -12,11 +12,9 @@ from mwa_source_finder import logger_setup, obs_utils, coord_utils
 
 def get_beam_power_over_time(
     pointings: list,
-    obsid: int,
-    metadata: dict,
-    t_start: float = 0.0,
-    t_end: float = 1.0,
-    dt: float = 60.0,
+    obs_metadata: dict,
+    freq: float,
+    times: list,
     norm_to_zenith: bool = True,
     logger: logging.Logger = None,
 ) -> np.ndarray:
@@ -31,9 +29,7 @@ def get_beam_power_over_time(
                 The J2000 right ascension in decimal degrees.
             DECJD : float
                 The J2000 declination in decimal degrees.
-    obsid : int
-        The observation ID.
-    metadata : dict
+    obs_metadata : dict
         A dictionary of metadata containing at minimum:
 
             duration : int
@@ -47,12 +43,10 @@ def get_beam_power_over_time(
             channels : list
                 The frequency channels in MHz.
 
-    t_start : float
-        The start time to search, as a fraction of the full observation.
-    t_end : float
-        The end time to search, as a fraction of the full observation.
-    dt : float, optional
-        The step size in time to evaluate the power at, by default 60.
+    freq : float
+        The frequency to compute the beam power at in Hz.
+    times: list
+        A list of times to compute the beam power at.
     norm_to_zenith : bool, optional
         Whether to normalise powers to zenith, by default True
     logger : logging.Logger, optional
@@ -75,58 +69,35 @@ def get_beam_power_over_time(
         )
         sys.exit(1)
 
-    # Work out the time steps to model
-    t_start_sec = t_start * metadata["duration"]
-    t_end_sec = t_end * metadata["duration"]
-    start_times = np.arange(t_start_sec, t_end_sec, dt)
-    stop_times = start_times + dt
-    stop_times[stop_times > metadata["duration"]] = metadata["duration"]
-    centre_times = float(obsid) + 0.5 * (start_times + stop_times)
-
-    # Work out the frequencies to model
-    frequencies = 1.28e6 * np.array(metadata["channels"], dtype=float)
-
-    # Initialise the powers
-    powers_x = np.zeros(
-        shape=(len(pointings), len(start_times), len(frequencies)), dtype=float
-    )
-    powers_y = np.zeros(
-        shape=(len(pointings), len(start_times), len(frequencies)), dtype=float
-    )
-
-    # Initialise the amplitudes
-    amps = [1.0] * 16
-
-    # Load the coordinates into numpy arrays
+    powers = np.zeros(shape=(len(pointings), len(times)), dtype=float)
     ra_arr = np.empty(shape=(len(pointings)), dtype=float)
     dec_arr = np.empty(shape=(len(pointings)), dtype=float)
+    S = np.eye(2) / 2
+
+    # Load the coordinates into numpy arrays
     for pi, pointing in enumerate(pointings):
         ra_arr[pi] = pointing["RAJD"]
         dec_arr[pi] = pointing["DECJD"]
 
-    for itime in range(len(start_times)):
+    for itime in range(len(times)):
         _, az_arr, za_arr = coord_utils.equatorial_to_horizontal(
-            ra_arr, dec_arr, centre_times[itime]
+            ra_arr, dec_arr, times[itime]
         )
-        theta_arr = np.radians(za_arr)
-        phi_arr = np.radians(az_arr)
-        for ifreq in range(len(frequencies)):
-            jones = beam.calc_jones_array(
-                phi_arr,
-                theta_arr,
-                int(frequencies[ifreq]),
-                metadata["delays"][0],
-                amps,
-                norm_to_zenith,
-            )
-            jones = jones.reshape(1, len(phi_arr), 2, 2)
-            # Compute the visibility matrix using einstein summation
-            vis = np.einsum("...ij,...kj->...ik", jones, np.conj(jones))
-            rX, rY = (vis[:, :, 0, 0].real, vis[:, :, 1, 1].real)
 
-            powers_x[:, itime, ifreq] = rX
-            powers_y[:, itime, ifreq] = rY
-    return 0.5 * (powers_x + powers_y)
+        jones = beam.calc_jones_array(
+            np.radians(az_arr),
+            np.radians(za_arr),
+            freq,
+            obs_metadata["delays"][0],
+            np.ones_like(obs_metadata["delays"][0]),
+            norm_to_zenith,
+        )
+
+        J = jones.reshape(-1, 2, 2)
+        K = np.conjugate(J).T
+        powers[:, itime] = np.einsum("Nki,ij,jkN->N", J, S, K, optimize=True).real
+
+    return powers
 
 
 def beam_enter_exit(
@@ -165,20 +136,20 @@ def beam_enter_exit(
         logger = logger_setup.get_logger()
 
     time_steps = np.array(np.arange(0, duration, dt), dtype=float)
-    powers_freq_min = np.empty(shape=(len(powers)), dtype=float)
-    for pi, p in enumerate(powers):
-        powers_freq_min[pi] = float(min(p) - min_power)
-    if np.min(powers_freq_min) > 0.0:
+
+    powers_offset = powers - min_power
+
+    if np.min(powers_offset) > 0.0:
         enter_beam = 0.0
         exit_beam = 1.0
     else:
-        spline = interpolate.UnivariateSpline(time_steps, powers_freq_min, s=0.0)
+        spline = interpolate.UnivariateSpline(time_steps, powers_offset, s=0.0)
         if len(spline.roots()) == 2:
             enter_beam, exit_beam = spline.roots()
             enter_beam /= duration
             exit_beam /= duration
         elif len(spline.roots()) == 1:
-            if powers_freq_min[0] > powers_freq_min[-1]:
+            if powers_offset[0] > powers_offset[-1]:
                 enter_beam = 0.0
                 exit_beam = spline.roots()[0] / duration
             else:
@@ -199,6 +170,7 @@ def source_beam_coverage(
     input_dt: float = 60.0,
     norm_mode: str = "zenith",
     min_power: float = 0.3,
+    freq_mode: str = "centre",
     logger: logging.Logger = None,
 ) -> dict:
     """For lists of pointings and observations, find where each source each
@@ -243,6 +215,9 @@ def source_beam_coverage(
     min_power : float, optional
         The minimum power to count as in the beam. If a normalisation mode is
         selected, then this will be interpreted as a normalised power. By default 0.3.
+    freq_mode : str, optional
+        The frequency to use to compute the beam power ['low', 'centre', 'high'],
+        by default 'centre'.
     logger : logging.Logger, optional
         A custom logger to use, by default None.
 
@@ -278,14 +253,28 @@ def source_beam_coverage(
         else:
             dt = input_dt
 
+        # Choose frequency to model
+        if freq_mode == "low":
+            freq = 1.28e6 * np.min(obs_metadata["channels"])
+        elif freq_mode == "centre":
+            freq = 1e6 * obs_metadata["centrefreq"]
+        elif freq_mode == "high":
+            freq = 1.28e6 * np.max(obs_metadata["channels"])
+
+        # Choose time steps to model
+        t_start_sec = t_start * obs_metadata["duration"]
+        t_end_sec = t_end * obs_metadata["duration"]
+        start_times = np.arange(t_start_sec, t_end_sec, dt)
+        stop_times = start_times + dt
+        stop_times[stop_times > obs_metadata["duration"]] = obs_metadata["duration"]
+        centre_times = float(obsid) + 0.5 * (start_times + stop_times)
+
         logger.debug(f"Obs ID {obsid}: Getting beam powers")
         powers = get_beam_power_over_time(
             pointings,
-            obsid,
             obs_metadata,
-            t_start=t_start,
-            t_end=t_end,
-            dt=dt,
+            freq,
+            centre_times,
             norm_to_zenith=norm_to_zenith,
             logger=logger,
         )
@@ -306,7 +295,10 @@ def source_beam_coverage(
                     np.amax(source_obs_power),
                     source_obs_power,
                 ]
-    return beam_coverage
+        if not beam_coverage[obsid]:
+            beam_coverage.pop(obsid)
+            obs_metadata_dict.pop(obsid)
+    return beam_coverage, obs_metadata_dict
 
 
 def find_sources_in_obs(
@@ -318,6 +310,7 @@ def find_sources_in_obs(
     input_dt: float = 60.0,
     norm_mode: str = "zenith",
     min_power: float = 0.3,
+    freq_mode: str = "centre",
     logger: logging.Logger = None,
 ) -> Tuple[dict, dict]:
     """Find sources in observations.
@@ -337,10 +330,13 @@ def find_sources_in_obs(
     input_dt : float, optional
         The input step size in time (may be reduced), by default 60.
     norm_mode : str, optional
-        The normalisation mode, by default 'zenith'.
+        The normalisation mode ['zenith', 'beam'], by default 'zenith'.
     min_power : float, optional
         The minimum power to count as in the beam. If a normalisation mode is
         selected, then this will be interpreted as a normalised power. By default 0.3.
+    freq_mode : str, optional
+        The frequency to use to compute the beam power ['low', 'centre', 'high'],
+        by default 'centre'.
     logger : logging.Logger, optional
         A custom logger to use, by default None.
 
@@ -441,17 +437,20 @@ def find_sources_in_obs(
         # Print out a full list of observations
         logger.info(f"Obs IDs: {obsids}")
     else:
-        logger.info("Retrieving metadata for all observations...")
+        logger.info("Obtaining a list of all obs IDs...")
         obsids = obs_utils.get_all_obsids(logger=logger)
         logger.info(f"{len(obsids)} observations found")
 
     obs_metadata_dict = dict()
     for obsid in obsids:
-        logger.info(f"Obtaining metadata for obs ID: {obsid}")
-        obs_metadata_dict[obsid] = obs_utils.get_common_metadata(obsid, logger)
+        logger.debug(f"Obtaining metadata for obs ID: {obsid}")
+        obs_metadata_tmp = obs_utils.get_common_metadata(obsid, logger)
+        if obs_metadata_tmp is not None:
+            obs_metadata_dict[obsid] = obs_metadata_tmp
+    obsids = list(obs_metadata_dict)
 
     logger.info("Finding sources in beams...")
-    beam_coverage = source_beam_coverage(
+    beam_coverage, obs_metadata_dict = source_beam_coverage(
         pointings,
         obsids,
         obs_metadata_dict,
@@ -460,8 +459,14 @@ def find_sources_in_obs(
         input_dt=input_dt,
         norm_mode=norm_mode,
         min_power=min_power,
+        freq_mode=freq_mode,
         logger=logger,
     )
+    obsids = list(beam_coverage)
+
+    if not beam_coverage:
+        logger.info("No sources found in beams.")
+        sys.exit(1)
 
     output_data = dict()
     if obs_for_source:
