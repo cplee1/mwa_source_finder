@@ -123,18 +123,18 @@ def get_common_metadata(obsid: int, logger: logging.Logger = None) -> dict:
         return None
 
     try:
+        duration = metadata["stoptime"] - metadata["starttime"]
+        delays = metadata["rfstreams"]["0"]["xdelays"]
+        channels = metadata["rfstreams"]["0"]["frequencies"]
         minfreq = float(min(metadata["rfstreams"]["0"]["frequencies"]))
         maxfreq = float(max(metadata["rfstreams"]["0"]["frequencies"]))
-        xdelays = metadata["rfstreams"]["0"]["xdelays"]
-        ydelays = metadata["rfstreams"]["0"]["ydelays"]
-        channels = metadata["rfstreams"]["0"]["frequencies"]
     except KeyError:
         logger.error(f"Incomplete metadata for obs ID: {obsid}")
         return None
 
     common_metadata = dict(
-        duration=metadata["stoptime"] - metadata["starttime"],
-        delays=[xdelays, ydelays],
+        duration=duration,
+        delays=delays,
         channels=channels,
         bandwidth=1.28 * (channels[-1] - channels[0] + 1),
         centrefreq=1.28 * (minfreq + 0.5 * (maxfreq - minfreq)),

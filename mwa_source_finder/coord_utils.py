@@ -395,7 +395,7 @@ def get_pointings(sources: list, logger: logging.Logger = None) -> list:
             break
     # If required, query the catalogue
     if query_flag:
-        logger.info("Querying the pulsar catalogue")
+        logger.debug("Querying the pulsar catalogue")
         query = psrqpy.QueryATNF(
             params=["PSRJ", "PSRB", "RAJ", "DECJ", "RAJD", "DECJD"]
         )
@@ -444,7 +444,7 @@ def get_atnf_pulsars(logger: logging.Logger = None) -> list:
     if logger is None:
         logger = logger_setup.get_logger()
 
-    logger.info("Querying the pulsar catalogue...")
+    logger.debug("Querying the pulsar catalogue")
     query = psrqpy.QueryATNF(params=["PSRJ", "RAJ", "DECJ", "RAJD", "DECJD"])
     logger.info(f"Using ATNF pulsar catalogue version {query.get_version}")
     psrjs = list(query.table["PSRJ"])

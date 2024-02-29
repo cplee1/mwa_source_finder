@@ -88,8 +88,8 @@ def get_beam_power_over_time(
             np.radians(az_arr),
             np.radians(za_arr),
             freq,
-            obs_metadata["delays"][0],
-            np.ones_like(obs_metadata["delays"][0]),
+            obs_metadata["delays"],
+            np.ones_like(obs_metadata["delays"]),
             norm_to_zenith,
         )
 
@@ -103,7 +103,7 @@ def get_beam_power_over_time(
 def beam_enter_exit(
     powers: np.ndarray,
     duration: int,
-    dt: float = 60.0,
+    time_steps: list,
     min_power: float = 0.3,
     logger: logging.Logger = None,
 ) -> Tuple[float, float]:
@@ -115,8 +115,8 @@ def beam_enter_exit(
         A 2D array of powers for each timestep and channel.
     duration : int
         The observation duration in seconds.
-    dt : float, optional
-        The step size in time, by default 60.
+    time_steps : list
+        The time steps to compute the beam power at.
     min_power : float, optional
         The minimum power to count as in the beam. By default 0.3.
     logger : logging.Logger, optional
@@ -134,8 +134,6 @@ def beam_enter_exit(
     """
     if logger is None:
         logger = logger_setup.get_logger()
-
-    time_steps = np.array(np.arange(0, duration, dt), dtype=float)
 
     powers_offset = powers - min_power
 
@@ -241,13 +239,18 @@ def source_beam_coverage(
     else:
         norm_to_zenith = False
 
+    if t_start > t_end:
+        logger.critical("Selected start time is after selected end time.")
+        sys.exit(1)
+
     beam_coverage = dict()
     for obsid in obsids:
         beam_coverage[obsid] = dict()
         obs_metadata = obs_metadata_dict[obsid]
+        duration = (t_end - t_start) * obs_metadata["duration"]
 
-        if obs_metadata["duration"] / input_dt < 4:
-            multiplier = 4 * input_dt / obs_metadata["duration"]
+        if duration / input_dt < 4:
+            multiplier = 4 * input_dt / duration
             dt = input_dt / multiplier
             logger.debug(f"Obs ID {obsid}: Using reduced dt={dt}")
         else:
@@ -262,19 +265,17 @@ def source_beam_coverage(
             freq = 1.28e6 * np.max(obs_metadata["channels"])
 
         # Choose time steps to model
-        t_start_sec = t_start * obs_metadata["duration"]
-        t_end_sec = t_end * obs_metadata["duration"]
+        t_start_sec = float(obsid) + t_start * obs_metadata["duration"]
+        t_end_sec = float(obsid) + t_end * obs_metadata["duration"]
         start_times = np.arange(t_start_sec, t_end_sec, dt)
-        stop_times = start_times + dt
-        stop_times[stop_times > obs_metadata["duration"]] = obs_metadata["duration"]
-        centre_times = float(obsid) + 0.5 * (start_times + stop_times)
+        times = np.append(start_times, t_end_sec)
 
         logger.debug(f"Obs ID {obsid}: Getting beam powers")
         powers = get_beam_power_over_time(
             pointings,
             obs_metadata,
             freq,
-            centre_times,
+            times,
             norm_to_zenith=norm_to_zenith,
             logger=logger,
         )
@@ -284,8 +285,8 @@ def source_beam_coverage(
             if np.max(source_obs_power) > min_power:
                 beam_enter, beam_exit = beam_enter_exit(
                     source_obs_power,
-                    obs_metadata["duration"],
-                    dt=dt,
+                    duration,
+                    times - float(obsid),
                     min_power=min_power,
                     logger=logger,
                 )
@@ -298,7 +299,7 @@ def source_beam_coverage(
         if not beam_coverage[obsid]:
             beam_coverage.pop(obsid)
             obs_metadata_dict.pop(obsid)
-    return beam_coverage, obs_metadata_dict
+    return beam_coverage, obs_metadata_dict, freq
 
 
 def find_sources_in_obs(
@@ -450,7 +451,7 @@ def find_sources_in_obs(
     obsids = list(obs_metadata_dict)
 
     logger.info("Finding sources in beams...")
-    beam_coverage, obs_metadata_dict = source_beam_coverage(
+    beam_coverage, obs_metadata_dict, freq = source_beam_coverage(
         pointings,
         obsids,
         obs_metadata_dict,
@@ -492,4 +493,4 @@ def find_sources_in_obs(
                     obsid_data.append([source_name, enter_beam, exit_beam, max_power])
             output_data[obsid] = obsid_data
 
-    return output_data, beam_coverage, pointings, obs_metadata_dict
+    return output_data, beam_coverage, pointings, obs_metadata_dict, freq

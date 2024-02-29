@@ -73,13 +73,13 @@ def main():
     obs_args.add_argument(
         "--start",
         type=float,
-        default=0.0,
+        default=0.,
         help="Start time of the search, as a fraction of the full observation.",
     )
     obs_args.add_argument(
         "--end",
         type=float,
-        default=1.0,
+        default=1.,
         help="End time of the search, as a fraction of the full observation.",
     )
 
@@ -91,7 +91,12 @@ def main():
     finder_args.add_argument(
         "--obs_for_source",
         action="store_true",
-        help="Find observations that each source is in",
+        help="Find observations that each source is in.",
+    )
+    finder_args.add_argument(
+        "--source_for_all_obs",
+        action="store_true",
+        help="Force a search for sources in all obs IDs.",
     )
     finder_args.add_argument(
         "--dt", type=float, default=60, help="Step size in time for beam modelling."
@@ -118,7 +123,7 @@ def main():
         default="centre",
         help="Which frequency to use to compute the beam power. 'low' will use the "
         + "lowest frequency (most generous). 'centre' will use the centre frequency. "
-        + "'high' will use the highest frequency (most conservative)."
+        + "'high' will use the highest frequency (most conservative).",
     )
 
     args = parser.parse_args()
@@ -126,8 +131,15 @@ def main():
     # Initialise the logger
     logger = logger_setup.get_logger(loglevels[args.loglvl])
 
-    if not args.sources and not args.sources_file and not args.obsids:
+    if (
+        not args.sources
+        and not args.sources_file
+        and not args.obsids
+        and not args.source_for_all_obs
+    ):
         logger.error("No sources or observations specified.")
+        logger.info("If you would like to search for all sources in all obs IDs, "
+                     + "use the --source_for_all_obs option.")
         sys.exit(1)
 
     if args.min_power < 0.0 or args.min_power > 1.0:
@@ -138,7 +150,15 @@ def main():
         logger.error("'beam' normalisation mode is not yet implemented.")
         sys.exit(1)
 
-    # TODO: Ask user if to use --obs_for_source if no obsid is given
+    if args.obsids is None and not args.obs_for_source and not args.source_for_all_obs:
+        logger.error("No obs IDs specified while in source-for-obs mode.")
+        logger.info("If you would like to search for sources in all obs IDs, "
+                     + "use the --source_for_all_obs option.")
+        sys.exit(1)
+
+    if args.obs_for_source and (args.start != 0. or args.end != 1.):
+        logger.error("Custom start and end time not available in obs-for-source mode.")
+        sys.exit(1)
 
     # Decide whether to parse user provided source list or use the full catalogue
     if args.sources or args.sources_file:
@@ -163,6 +183,7 @@ def main():
         beam_coverage,
         pointings,
         obs_metadata_dict,
+        freq,
     ) = finder.find_sources_in_obs(
         sources,
         args.obsids,
@@ -177,9 +198,13 @@ def main():
     )
 
     if args.obs_for_source:
-        print(finder_result)
         file_output.write_output_source_files(
-            finder_result, obs_metadata_dict, args.min_power, logger=logger
+            finder_result,
+            obs_metadata_dict,
+            args.freq_mode,
+            args.norm_mode,
+            args.min_power,
+            logger=logger,
         )
 
         file_output.plot_power_vs_time(
@@ -191,5 +216,12 @@ def main():
         )
     else:
         file_output.write_output_obs_files(
-            finder_result, obs_metadata_dict, args.min_power, logger=logger
+            finder_result,
+            obs_metadata_dict,
+            args.start,
+            args.end,
+            freq,
+            args.norm_mode,
+            args.min_power,
+            logger=logger,
         )
