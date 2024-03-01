@@ -33,6 +33,8 @@ def write_output_source_files(
         The frequency mode used ['low', 'centre', 'high'].
     norm_mode: str
         The beam normalisation mode used ['zenith', 'beam'].
+    min_power : float, optional
+        The minimum power to count as in the beam.
     logger : logging.Logger, optional
         A custom logger to use, by default None.
     """
@@ -118,6 +120,8 @@ def write_output_obs_files(
         The frequency of the search.
     norm_mode: str
         The beam normalisation mode used ['zenith', 'beam'].
+    min_power : float, optional
+        The minimum power to count as in the beam.
     logger : logging.Logger, optional
         A custom logger to use, by default None.
     """
@@ -189,12 +193,36 @@ def setup_ticks(ax, fontsize=12):
 
 
 def plot_power_vs_time(
-    pointings: list,
+    source_names: list,
     obs_metadata_dict: list,
     beam_coverage: dict,
     min_power: float,
     logger: logging.Logger = None,
 ):
+    """Make a plot of power vs time showing each obs ID for a source.
+
+    Parameters
+    ----------
+    source_names : list
+        A list of pointing dictionaries.
+    obs_metadata_dict : list
+        A dictionary of metadata dictionaries.
+    beam_coverage : dict
+        A dictionary organised by obs IDs then source names, with each source
+        having a list the following:
+
+            enter_beam : float
+                The fraction of the observation where the source enters the beam.
+            exit_beam : float
+                The fraction of the observation where the source exits the beam.
+            max_pow: float
+                The maximum power reached within the beam.
+
+    min_power : float
+        The minimum power to count as in the beam.
+    logger : logging.Logger, optional
+        A custom logger to use, by default None.
+    """
     if logger is None:
         logger = logger_setup.get_logger()
 
@@ -217,8 +245,7 @@ def plot_power_vs_time(
             line_combos.append([lsi, coli])
 
     # Plot of power in each observation, one plot per source
-    for pointing in pointings:
-        source_name = pointing["Name"]
+    for source_name in source_names:
         ii = 0
         max_duration = 0
 

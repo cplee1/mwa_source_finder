@@ -207,8 +207,9 @@ def main():
             logger=logger,
         )
 
+        source_names = [pointing["Name"] for pointing in pointings]
         file_output.plot_power_vs_time(
-            pointings,
+            source_names,
             obs_metadata_dict,
             beam_coverage,
             args.min_power,
