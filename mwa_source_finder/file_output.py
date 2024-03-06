@@ -172,3 +172,40 @@ def write_output_obs_files(
         lines.insert(0, header)
         with open(out_file, "w") as f:
             f.writelines(lines)
+
+
+def invert_finder_results(finder_results, obs_for_source=True):
+    new_finder_results = dict()
+
+    if obs_for_source:
+        for source in finder_results:
+            finder_result = finder_results[source]
+            for obsid_data in finder_result:
+                if len(obsid_data) == 4:
+                    obsid, enter_beam, exit_beam, max_power = obsid_data
+                else:
+                    obsid, enter_beam, exit_beam, max_power, dur, fctr, bw = obsid_data
+
+                if obsid not in new_finder_results:
+                    new_finder_results[obsid] = []
+
+                if len(obsid_data) == 4:
+                    new_finder_results[obsid].append(
+                        [source, enter_beam, exit_beam, max_power]
+                    )
+                else:
+                    new_finder_results[obsid].append(
+                        [source, enter_beam, exit_beam, max_power, dur, fctr, bw]
+                    )
+    else:
+        for obsid in finder_results:
+            finder_result = finder_results[obsid]
+            for source_data in finder_result:
+                source, enter_beam, exit_beam, max_power = source_data
+                if source not in new_finder_results:
+                    new_finder_results[source] = []
+                new_finder_results[source].append(
+                    [obsid, enter_beam, exit_beam, max_power]
+                )
+
+    return new_finder_results

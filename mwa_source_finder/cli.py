@@ -73,13 +73,13 @@ def main():
     obs_args.add_argument(
         "--start",
         type=float,
-        default=0.,
+        default=0.0,
         help="Start time of the search, as a fraction of the full observation.",
     )
     obs_args.add_argument(
         "--end",
         type=float,
-        default=1.,
+        default=1.0,
         help="End time of the search, as a fraction of the full observation.",
     )
 
@@ -138,8 +138,10 @@ def main():
         and not args.source_for_all_obs
     ):
         logger.error("No sources or observations specified.")
-        logger.info("If you would like to search for all sources in all obs IDs, "
-                     + "use the --source_for_all_obs option.")
+        logger.info(
+            "If you would like to search for all sources in all obs IDs, "
+            + "use the --source_for_all_obs option."
+        )
         sys.exit(1)
 
     if args.min_power < 0.0 or args.min_power > 1.0:
@@ -152,11 +154,13 @@ def main():
 
     if args.obsids is None and not args.obs_for_source and not args.source_for_all_obs:
         logger.error("No obs IDs specified while in source-for-obs mode.")
-        logger.info("If you would like to search for sources in all obs IDs, "
-                     + "use the --source_for_all_obs option.")
+        logger.info(
+            "If you would like to search for sources in all obs IDs, "
+            + "use the --source_for_all_obs option."
+        )
         sys.exit(1)
 
-    if args.obs_for_source and (args.start != 0. or args.end != 1.):
+    if args.obs_for_source and (args.start != 0.0 or args.end != 1.0):
         logger.error("Custom start and end time not available in obs-for-source mode.")
         sys.exit(1)
 
@@ -179,7 +183,7 @@ def main():
 
     # Run the source finder
     (
-        finder_result,
+        finder_results,
         beam_coverage,
         pointings,
         obs_metadata_dict,
@@ -199,7 +203,7 @@ def main():
     source_names = [pointing["name"] for pointing in pointings]
     if args.obs_for_source:
         file_output.write_output_source_files(
-            finder_result,
+            finder_results,
             obs_metadata_dict,
             args.freq_mode,
             args.norm_mode,
@@ -214,9 +218,11 @@ def main():
             args.min_power,
             logger=logger,
         )
+
+        obs_finder_results = file_output.invert_finder_results(finder_results)
     else:
         file_output.write_output_obs_files(
-            finder_result,
+            finder_results,
             obs_metadata_dict,
             args.start,
             args.end,
@@ -225,13 +231,16 @@ def main():
             logger=logger,
         )
 
-        for obsid in obs_metadata_dict:
-            obs_metadata = obs_metadata_dict[obsid]
-            beam_2D.generate_beam_sky_map(
-                finder_result[obsid],
-                beam_coverage,
-                obs_metadata,
-                pointings,
-                norm_to_zenith=True,
-                logger=logger,
-            )
+        obs_finder_results = finder_results
+
+    for obsid in obs_metadata_dict:
+        obs_metadata = obs_metadata_dict[obsid]
+        beam_2D.generate_beam_sky_map(
+            obs_finder_results[obsid],
+            beam_coverage,
+            obs_metadata,
+            pointings,
+            min_power=args.min_power,
+            norm_to_zenith=True,
+            logger=logger,
+        )

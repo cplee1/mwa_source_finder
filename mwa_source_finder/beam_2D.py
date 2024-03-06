@@ -66,10 +66,11 @@ def make_grid(az0, az1, za0, za1, n):
 
 
 def generate_beam_sky_map(
-    finder_result: dict,
+    finder_result: list,
     beam_coverage: dict,
     obs_metadata: dict,
     pointings: dict,
+    min_power: float,
     norm_to_zenith: bool = True,
     logger: logging.Logger = None,
 ):
@@ -101,7 +102,7 @@ def generate_beam_sky_map(
     source_coords = SkyCoord(source_RAs, source_DECs, unit=(u.deg, u.deg), frame="icrs")
 
     # Define the colour map
-    cmap = mpl.colormaps["viridis_r"]
+    cmap = mpl.colormaps["magma_r"]
     cmap.set_under(color="w")
     contour_levels = [0.01, 0.1, 0.5, 0.9]
 
@@ -190,6 +191,16 @@ def generate_beam_sky_map(
             source_power,
             fmt="k-",
         )
+
+        ax_1D.fill_between(
+            [0, obs_metadata["duration"]],
+            0,
+            min_power,
+            color="grey",
+            alpha=0.2,
+            hatch="///",
+        )
+
         ax_1D.set_xlabel("Time since start of observation [s]")
         ax_1D.set_ylabel("Z.N. beam power")
         ax_1D.set_ylim([0, 1])

@@ -376,10 +376,7 @@ def plot_power_vs_time(
         max_duration = 0
 
         fig = plt.figure(figsize=(8, 4), dpi=300)
-        gs = gridspec.GridSpec(1, 2, wspace=0.1)
-        ax0 = plt.subplot(gs[0])
-        ax1 = plt.subplot(gs[1])
-        axes = (ax0, ax1)
+        ax = fig.add_subplot(111)
 
         for obsid in obs_metadata_dict:
             if source_name in beam_coverage[obsid]:
@@ -390,54 +387,41 @@ def plot_power_vs_time(
 
                 # Plot powers
                 times_sec = np.linspace(0, obs_duration, len(source_power))
-                times_norm = np.linspace(0, 1, len(source_power))
-                axes[0].errorbar(
+                ax.errorbar(
                     times_sec,
                     source_power,
                     ls=line_combos[ii][0],
                     c=line_combos[ii][1],
                     label=obsid,
                 )
-                axes[1].errorbar(
-                    times_norm,
-                    source_power,
-                    ls=line_combos[ii][0],
-                    c=line_combos[ii][1],
-                    label=obsid,
-                )
                 ii += 1
-        for ax in axes:
-            ax.fill_between(
-                [0, max_duration],
-                0,
-                min_power,
-                color="grey",
-                alpha=0.3,
-                hatch="///",
-            )
-            ax.set_ylim([0, 1])
-            setup_ticks(ax)
-        axes[0].set_xlim([0, max_duration])
-        axes[1].set_xlim([0, 1])
-        axes[1].set_yticklabels([])
-        axes[0].set_xlabel("Time [s]")
-        axes[1].set_xlabel("Time [normalised]")
-        axes[0].set_ylabel("Power [normalised]")
-
-        handles, labels = axes[0].get_legend_handles_labels()
+        
+        ax.fill_between(
+            [0, max_duration],
+            0,
+            min_power,
+            color="grey",
+            alpha=0.2,
+            hatch="///",
+        )
+        ax.set_ylim([0, 1])
+        ax.set_yticks((np.arange(11)/10).tolist())
+        setup_ticks(ax)
+        ax.grid(ls=":", color="0.5")
+        ax.set_xlim([0, max_duration])
+        ax.set_xlabel("Time [s]")
+        ax.set_ylabel("Power [normalised]")
         fig.legend(
-            handles,
-            labels,
             loc="upper center",
             bbox_to_anchor=(0.5, -0.02),
             fancybox=True,
             shadow=True,
             ncol=3,
         )
-        fig.suptitle(source_name)
+        fig.suptitle(f"Source: {source_name}")
 
         # Save fig
-        plot_name = f"power_vs_time_{source_name}.png"
+        plot_name = f"{source_name}_power_vs_time.png"
         logger.info(f"Saving plot file: {plot_name}")
         fig.savefig(plot_name, bbox_inches="tight")
         fig.clf()
