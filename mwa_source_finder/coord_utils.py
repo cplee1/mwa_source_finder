@@ -9,6 +9,11 @@ import psrqpy
 
 from mwa_source_finder import logger_setup
 
+TEL_LAT = -26.703319
+TEL_LON = 116.67081
+TEL_ELEV = 377.827
+TEL_LOCATION = EarthLocation(lat=TEL_LAT * u.deg, lon=TEL_LON * u.deg, height=TEL_ELEV * u.m)
+
 
 def is_float(string: str) -> bool:
     """Check if a string is a valid representation of a float.
@@ -230,10 +235,7 @@ def equatorial_to_horizontal(
 
     eq_pos = SkyCoord(rajd, decjd, unit=(u.deg, u.deg))
     obstime = Time(float(gps_epoch), format="gps")
-    earth_location = EarthLocation.from_geodetic(
-        lon="116:40:14.93", lat="-26:42:11.95", height=377.8
-    )
-    altaz_pos = eq_pos.transform_to(AltAz(obstime=obstime, location=earth_location))
+    altaz_pos = eq_pos.transform_to(AltAz(obstime=obstime, location=TEL_LOCATION))
     alt = altaz_pos.alt.deg
     az = altaz_pos.az.deg
     za = 90.0 - alt
@@ -412,7 +414,7 @@ def get_pointings(sources: list, logger: logging.Logger = None) -> list:
             logger.error(f"Source not recognised: {source}")
         if raj is None:
             continue
-        pointing = dict(Name=source, RAJ=raj, DECJ=decj, RAJD=rajd, DECJD=decjd)
+        pointing = dict(name=source, RAJ=raj, DECJ=decj, RAJD=rajd, DECJD=decjd)
         pointings.append(pointing)
     return pointings
 
@@ -457,6 +459,6 @@ def get_atnf_pulsars(logger: logging.Logger = None) -> list:
     for psrj, raj, decj, rajd, decjd in zip(psrjs, rajs, decjs, rajds, decjds):
         raj = format_sexigesimal(raj, logger=logger)
         decj = format_sexigesimal(decj, add_sign=True, logger=logger)
-        pointing = dict(Name=psrj, RAJ=raj, DECJ=decj, RAJD=rajd, DECJD=decjd)
+        pointing = dict(name=psrj, RAJ=raj, DECJ=decj, RAJD=rajd, DECJD=decjd)
         pointings.append(pointing)
     return pointings

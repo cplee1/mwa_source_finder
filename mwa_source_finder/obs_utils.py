@@ -118,26 +118,43 @@ def get_common_metadata(obsid: int, logger: logging.Logger = None) -> dict:
         logger = logger_setup.get_logger()
 
     metadata = get_metadata(service="obs", params={"obs_id": obsid}, logger=logger)
+    
     if metadata is None:
         logger.error(f"Could not get metadata for obs ID: {obsid}")
         return None
+    
+    # with open(f"{obsid}_meta.json", "w") as meta_file:
+    #     meta_file.write(json.dumps(metadata, indent=4))x
+    
+    if metadata["deleted"]:
+        logger.debug(f"Observation is deleted: {obsid}")
+        return None
 
     try:
-        duration = metadata["stoptime"] - metadata["starttime"]
+        start_t = metadata["starttime"]
+        stop_t = metadata["stoptime"]
+        duration = stop_t - start_t
         delays = metadata["rfstreams"]["0"]["xdelays"]
         channels = metadata["rfstreams"]["0"]["frequencies"]
         minfreq = float(min(metadata["rfstreams"]["0"]["frequencies"]))
         maxfreq = float(max(metadata["rfstreams"]["0"]["frequencies"]))
+        azimuth = metadata["rfstreams"]["0"]["azimuth"]
+        altitude = metadata["rfstreams"]["0"]["elevation"]
     except KeyError:
         logger.error(f"Incomplete metadata for obs ID: {obsid}")
         return None
 
     common_metadata = dict(
+        obsid=obsid,
+        start_t=start_t,
+        stop_t=stop_t,
         duration=duration,
         delays=delays,
         channels=channels,
         bandwidth=1.28 * (channels[-1] - channels[0] + 1),
         centrefreq=1.28 * (minfreq + 0.5 * (maxfreq - minfreq)),
+        azimuth=azimuth,
+        altitude=altitude,
     )
     return common_metadata
 

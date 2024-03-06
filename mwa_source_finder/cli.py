@@ -3,7 +3,7 @@ import argparse
 
 import numpy as np
 
-from mwa_source_finder import logger_setup, finder, file_output
+from mwa_source_finder import logger_setup, finder, file_output, beam_1D, beam_2D
 
 
 def main():
@@ -183,7 +183,6 @@ def main():
         beam_coverage,
         pointings,
         obs_metadata_dict,
-        freq,
     ) = finder.find_sources_in_obs(
         sources,
         args.obsids,
@@ -197,6 +196,7 @@ def main():
         logger=logger,
     )
 
+    source_names = [pointing["name"] for pointing in pointings]
     if args.obs_for_source:
         file_output.write_output_source_files(
             finder_result,
@@ -207,8 +207,7 @@ def main():
             logger=logger,
         )
 
-        source_names = [pointing["Name"] for pointing in pointings]
-        file_output.plot_power_vs_time(
+        beam_1D.plot_power_vs_time(
             source_names,
             obs_metadata_dict,
             beam_coverage,
@@ -221,8 +220,18 @@ def main():
             obs_metadata_dict,
             args.start,
             args.end,
-            freq,
             args.norm_mode,
             args.min_power,
             logger=logger,
         )
+
+        for obsid in obs_metadata_dict:
+            obs_metadata = obs_metadata_dict[obsid]
+            beam_2D.generate_beam_sky_map(
+                finder_result[obsid],
+                beam_coverage,
+                obs_metadata,
+                pointings,
+                norm_to_zenith=True,
+                logger=logger,
+            )
