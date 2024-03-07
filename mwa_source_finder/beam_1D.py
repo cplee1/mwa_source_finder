@@ -6,7 +6,6 @@ from typing import Tuple
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-from matplotlib import gridspec
 from scipy import interpolate
 import mwa_hyperbeam
 
