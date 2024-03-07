@@ -10,13 +10,15 @@ authors = [
     { name = "Bradley Meyers" },
 ]
 description = "Find sources in MWA observations."
-requires-python = ">= 3.8"
+requires-python = ">= 3.7"
 license = { file = "LICENSE" }
 readme = { file = "README.md", content-type = "text/markdown" }
 dependencies = [
-    "astropy >= 5.1",
+    "numpy >= 1.17.0",
+    "matplotlib >= 3.5",
+    "astropy",
     "psrqpy >= 1.2.7",
-    "mwa-hyperbeam >= 0.7.0"
+    "mwa-hyperbeam"
 ]
 dynamic = ["version"]
 
