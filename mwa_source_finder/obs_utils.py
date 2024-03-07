@@ -98,21 +98,7 @@ def get_common_metadata(obsid: int, logger: logging.Logger = None) -> dict:
     Returns
     -------
     dict
-        A dictionary of commonly used metadata:
-            duration : int
-                The observation duration in seconds.
-            delays : list
-                A list with two items:
-                    xdelays : list
-                        The delays for the X polarisation.
-                    ydelays : list
-                        The delays for the Y polarisation.
-            channels : list
-                The frequency channels in MHz.
-            bandwidth : float
-                The bandwidth in MHz.
-            centrefreq : float
-                The centre frequency in MHz.
+        A dictionary of commonly used metadata.
     """
     if logger is None:
         logger = logger_setup.get_logger()
@@ -124,7 +110,7 @@ def get_common_metadata(obsid: int, logger: logging.Logger = None) -> dict:
         return None
     
     # with open(f"{obsid}_meta.json", "w") as meta_file:
-    #     meta_file.write(json.dumps(metadata, indent=4))x
+    #     meta_file.write(json.dumps(metadata, indent=4))
     
     if metadata["deleted"]:
         logger.debug(f"Observation is deleted: {obsid}")

@@ -371,24 +371,14 @@ def get_pointings(sources: list, logger: logging.Logger = None) -> list:
 
     Returns
     -------
-    list
-        A list of dictionaries, each with the following items:
-
-            Name : str
-                The source name.
-            RAJ : str
-                The J2000 right ascension in sexigesimal format.
-            DEC : str
-                The J2000 declination in sexigesimal format.
-            RAJD : float
-                The J2000 right ascension in decimal degrees.
-            DECJD : float
-                The J2000 declination in decimal degrees.
+    dict
+        A dictionary of dictionaries containing pointing information, organised
+        by source name.
     """
     if logger is None:
         logger = logger_setup.get_logger()
 
-    pointings = []
+    pointings = dict()
     query_flag = False
     # Check for pulsar names
     for source in sources:
@@ -415,7 +405,7 @@ def get_pointings(sources: list, logger: logging.Logger = None) -> list:
         if raj is None:
             continue
         pointing = dict(name=source, RAJ=raj, DECJ=decj, RAJD=rajd, DECJD=decjd)
-        pointings.append(pointing)
+        pointings[source] = pointing
     return pointings
 
 
@@ -429,19 +419,9 @@ def get_atnf_pulsars(logger: logging.Logger = None) -> list:
 
     Returns
     -------
-    list
-        A list of dictionaries, each with the following items:
-
-            Name : str
-                The source name.
-            RAJ : str
-                The J2000 right ascension in sexigesimal format.
-            DEC : str
-                The J2000 declination in sexigesimal format.
-            RAJD : float
-                The J2000 right ascension in decimal degrees.
-            DECJD : float
-                The J2000 declination in decimal degrees.
+    dict
+        A dictionary of dictionaries containing pointing information, organised
+        by source name.
     """
     if logger is None:
         logger = logger_setup.get_logger()
@@ -455,10 +435,10 @@ def get_atnf_pulsars(logger: logging.Logger = None) -> list:
     rajds = list(query.table["RAJD"])
     decjds = list(query.table["DECJD"])
     # Loop through all the pulsars and store the pointings in dictionaries
-    pointings = []
+    pointings = dict()
     for psrj, raj, decj, rajd, decjd in zip(psrjs, rajs, decjs, rajds, decjds):
         raj = format_sexigesimal(raj, logger=logger)
         decj = format_sexigesimal(decj, add_sign=True, logger=logger)
         pointing = dict(name=psrj, RAJ=raj, DECJ=decj, RAJD=rajd, DECJD=decjd)
-        pointings.append(pointing)
+        pointings[psrj] = pointing
     return pointings

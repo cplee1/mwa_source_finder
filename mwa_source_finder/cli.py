@@ -1,7 +1,7 @@
 import sys
 import argparse
 
-from mwa_source_finder import logger_setup, finder, file_output, beam_1D, beam_2D
+from mwa_source_finder import logger_setup, finder, file_output, plotting
 
 
 def load_items_from_file(filename: str) -> list:
@@ -222,7 +222,6 @@ def main():
         if args.sources_file:
             logger.info(f"Parsing the provided source list file: {args.sources_file}")
             sources_from_file = load_items_from_file(args.sources_file)
-            print(f"{sources_from_file=}")
             if sources:
                 sources += sources_from_file
             else:
@@ -236,7 +235,6 @@ def main():
         if args.obsids_file:
             logger.info(f"Parsing the provided obs ID list file: {args.obsids_file}")
             obsids_from_file = load_items_from_file(args.obsids_file)
-            print(f"{obsids_from_file=}")
             if obsids:
                 obsids += obsids_from_file
             else:
@@ -249,7 +247,7 @@ def main():
         finder_results,
         beam_coverage,
         pointings,
-        obs_metadata_dict,
+        all_obs_metadata,
     ) = finder.find_sources_in_obs(
         sources,
         obsids,
@@ -263,11 +261,10 @@ def main():
         logger=logger,
     )
 
-    source_names = [pointing["name"] for pointing in pointings]
     if args.obs_for_source:
         file_output.write_output_source_files(
             finder_results,
-            obs_metadata_dict,
+            all_obs_metadata,
             args.freq_mode,
             args.norm_mode,
             args.min_power,
@@ -275,9 +272,9 @@ def main():
         )
 
         if args.time_plot:
-            beam_1D.plot_power_vs_time(
-                source_names,
-                obs_metadata_dict,
+            plotting.plot_power_vs_time(
+                pointings.keys(),
+                all_obs_metadata,
                 beam_coverage,
                 args.min_power,
                 logger=logger,
@@ -285,7 +282,7 @@ def main():
     else:
         file_output.write_output_obs_files(
             finder_results,
-            obs_metadata_dict,
+            all_obs_metadata,
             args.start,
             args.end,
             args.norm_mode,
@@ -300,9 +297,9 @@ def main():
         else:
             obs_finder_results = finder_results
 
-        for obsid in obs_metadata_dict:
-            obs_metadata = obs_metadata_dict[obsid]
-            beam_2D.generate_beam_sky_map(
+        for obsid in all_obs_metadata:
+            obs_metadata = all_obs_metadata[obsid]
+            plotting.plot_beam_sky_map(
                 obs_finder_results[obsid],
                 beam_coverage,
                 obs_metadata,

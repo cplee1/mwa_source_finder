@@ -2,7 +2,7 @@ import logging
 import sys
 from typing import Tuple
 
-from mwa_source_finder import logger_setup, obs_utils, coord_utils, beam_1D
+from mwa_source_finder import logger_setup, obs_utils, coord_utils, beam_utils
 
 
 def find_sources_in_obs(
@@ -36,8 +36,7 @@ def find_sources_in_obs(
     norm_mode : str, optional
         The normalisation mode ['zenith', 'beam'], by default 'zenith'.
     min_power : float, optional
-        The minimum power to count as in the beam. If a normalisation mode is
-        selected, then this will be interpreted as a normalised power. By default 0.3.
+        The minimum normalised power to count as in the beam, by default 0.3.
     freq_mode : str, optional
         The frequency to use to compute the beam power ['low', 'centre', 'high'],
         by default 'centre'.
@@ -49,67 +48,26 @@ def find_sources_in_obs(
     Tuple[dict, dict]
         A tuple containing the following:
 
-            output_data : dict
-                A dictionary containing the results. If obs_for_source is False,
-                the dictionary is ordered by obs ID and contains a list of
-                lists, each with:
+            finder_results : dict
+                A dictionary where each item [obsid/source] is a list of lists.
+                The lists contain the obs ID/source name, the enter time, the
+                exit time, and the maximum zenith-normalised power reached by
+                the source in the beam.
 
-                    source_name : str
-                        The source name.
-                    enter_beam : float
-                        The fraction of the observation where the source enters
-                        the beam.
-                    exit_beam : float
-                        The fraction of the observation where the source exits
-                        the beam.
-                    max_power : float
-                        The maximum power reached within the beam.
+            beam_coverage: dict
+                A dictionary of dictionaries organised by obs IDs then source
+                names, with each source entry is a list containing the enter
+                time, the exit time, and the maximum zenith-normalised power
+                reached by the source in the beam, and an array of powers for
+                each time step.
 
-                If obs_for_source is True, the dictionary is ordered by source
-                name and contains a list of lists, each with:
+            all_obs_metadata : dict
+                A dictionary of dictionaries containing common metadata for each
+                observation, organised by obs ID.
 
-                    obsid : int
-                        The observation ID.
-                    enter_beam : float
-                        The fraction of the observation where the source enters
-                        the beam.
-                    exit_beam : float
-                        The fraction of the observation where the source exits
-                        the beam.
-                    max_power: float
-                        The maximum power reached within the beam.
-
-            obs_metadata_dict : dict
-                A dictionary containing common metadata for each observation,
-                organised by observation ID, each with the following items:
-
-                    duration : int
-                        The observation duration in seconds.
-                    delays : list
-                        A list with two items:
-                            xdelays : list
-                                The delays for the X polarisation.
-                            ydelays : list
-                                The delays for the Y polarisation.
-                    channels : list
-                        The frequency channels in MHz.
-                    bandwidth : float
-                        The bandwidth in MHz.
-                    centrefreq : float
-                        The centre frequency in MHz.
-
-            pointings : list
-                A dictionary of dictionaries, organised by source name, each
-                with the following items:
-
-                    RAJ : str
-                        The J2000 right ascension in sexigesimal format.
-                    DEC : str
-                        The J2000 declination in sexigesimal format.
-                    RAJD : float
-                        The J2000 right ascension in decimal degrees.
-                    DECJD : float
-                        The J2000 declination in decimal degrees.
+            pointings : dict
+                A dictionary of dictionaries containing pointing information,
+                organised by source name.
     """
     if logger is None:
         logger = logger_setup.get_logger()
@@ -119,7 +77,8 @@ def find_sources_in_obs(
         pointings = coord_utils.get_pointings(sources, logger=logger)
         # Print out a full list of sources
         logger.info(f"{len(pointings)} pointings parsed sucessfully")
-        for pointing in pointings:
+        for source_name in pointings:
+            pointing = pointings[source_name]
             logger.info(
                 f"Source: {pointing['name']:30} "
                 + f"RAJ: {pointing['RAJ']:14} "
@@ -145,19 +104,19 @@ def find_sources_in_obs(
         obsids = obs_utils.get_all_obsids(logger=logger)
         logger.info(f"{len(obsids)} observations found")
 
-    obs_metadata_dict = dict()
+    all_obs_metadata = dict()
     for obsid in obsids:
         logger.debug(f"Obtaining metadata for obs ID: {obsid}")
         obs_metadata_tmp = obs_utils.get_common_metadata(obsid, logger)
         if obs_metadata_tmp is not None:
-            obs_metadata_dict[obsid] = obs_metadata_tmp
-    obsids = list(obs_metadata_dict)
+            all_obs_metadata[obsid] = obs_metadata_tmp
+    obsids = list(all_obs_metadata)
 
     logger.info("Finding sources in beams...")
-    beam_coverage, obs_metadata_dict = beam_1D.source_beam_coverage(
+    beam_coverage, all_obs_metadata = beam_utils.source_beam_coverage(
         pointings,
         obsids,
-        obs_metadata_dict,
+        all_obs_metadata,
         t_start=t_start,
         t_end=t_end,
         input_dt=input_dt,
@@ -172,10 +131,10 @@ def find_sources_in_obs(
         logger.info("No sources found in beams.")
         sys.exit(1)
 
-    output_data = dict()
+    finder_results = dict()
     if obs_for_source:
-        for pointing in pointings:
-            source_name = pointing["name"]
+        for source_name in pointings:
+            pointing = pointings[source_name]
             source_data = []
             for obsid in obsids:
                 if source_name in beam_coverage[obsid]:
@@ -183,17 +142,17 @@ def find_sources_in_obs(
                         source_name
                     ]
                     source_data.append([obsid, enter_beam, exit_beam, max_power])
-            output_data[source_name] = source_data
+            finder_results[source_name] = source_data
     else:
         for obsid in obsids:
             obsid_data = []
-            for pointing in pointings:
-                source_name = pointing["name"]
+            for source_name in pointings:
+                pointing = pointings[source_name]
                 if source_name in beam_coverage[obsid]:
                     enter_beam, exit_beam, max_power, _ = beam_coverage[obsid][
                         source_name
                     ]
                     obsid_data.append([source_name, enter_beam, exit_beam, max_power])
-            output_data[obsid] = obsid_data
+            finder_results[obsid] = obsid_data
 
-    return output_data, beam_coverage, pointings, obs_metadata_dict
+    return finder_results, beam_coverage, pointings, all_obs_metadata
