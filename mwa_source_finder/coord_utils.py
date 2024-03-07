@@ -9,6 +9,11 @@ import psrqpy
 
 from mwa_source_finder import logger_setup
 
+TEL_LAT = -26.703319
+TEL_LON = 116.67081
+TEL_ELEV = 377.827
+TEL_LOCATION = EarthLocation(lat=TEL_LAT * u.deg, lon=TEL_LON * u.deg, height=TEL_ELEV * u.m)
+
 
 def is_float(string: str) -> bool:
     """Check if a string is a valid representation of a float.
@@ -230,10 +235,7 @@ def equatorial_to_horizontal(
 
     eq_pos = SkyCoord(rajd, decjd, unit=(u.deg, u.deg))
     obstime = Time(float(gps_epoch), format="gps")
-    earth_location = EarthLocation.from_geodetic(
-        lon="116:40:14.93", lat="-26:42:11.95", height=377.8
-    )
-    altaz_pos = eq_pos.transform_to(AltAz(obstime=obstime, location=earth_location))
+    altaz_pos = eq_pos.transform_to(AltAz(obstime=obstime, location=TEL_LOCATION))
     alt = altaz_pos.alt.deg
     az = altaz_pos.az.deg
     za = 90.0 - alt
@@ -369,24 +371,14 @@ def get_pointings(sources: list, logger: logging.Logger = None) -> list:
 
     Returns
     -------
-    list
-        A list of dictionaries, each with the following items:
-
-            Name : str
-                The source name.
-            RAJ : str
-                The J2000 right ascension in sexigesimal format.
-            DEC : str
-                The J2000 declination in sexigesimal format.
-            RAJD : float
-                The J2000 right ascension in decimal degrees.
-            DECJD : float
-                The J2000 declination in decimal degrees.
+    dict
+        A dictionary of dictionaries containing pointing information, organised
+        by source name.
     """
     if logger is None:
         logger = logger_setup.get_logger()
 
-    pointings = []
+    pointings = dict()
     query_flag = False
     # Check for pulsar names
     for source in sources:
@@ -395,7 +387,7 @@ def get_pointings(sources: list, logger: logging.Logger = None) -> list:
             break
     # If required, query the catalogue
     if query_flag:
-        logger.info("Querying the pulsar catalogue")
+        logger.debug("Querying the pulsar catalogue")
         query = psrqpy.QueryATNF(
             params=["PSRJ", "PSRB", "RAJ", "DECJ", "RAJD", "DECJD"]
         )
@@ -412,8 +404,8 @@ def get_pointings(sources: list, logger: logging.Logger = None) -> list:
             logger.error(f"Source not recognised: {source}")
         if raj is None:
             continue
-        pointing = dict(Name=source, RAJ=raj, DECJ=decj, RAJD=rajd, DECJD=decjd)
-        pointings.append(pointing)
+        pointing = dict(name=source, RAJ=raj, DECJ=decj, RAJD=rajd, DECJD=decjd)
+        pointings[source] = pointing
     return pointings
 
 
@@ -427,24 +419,14 @@ def get_atnf_pulsars(logger: logging.Logger = None) -> list:
 
     Returns
     -------
-    list
-        A list of dictionaries, each with the following items:
-
-            Name : str
-                The source name.
-            RAJ : str
-                The J2000 right ascension in sexigesimal format.
-            DEC : str
-                The J2000 declination in sexigesimal format.
-            RAJD : float
-                The J2000 right ascension in decimal degrees.
-            DECJD : float
-                The J2000 declination in decimal degrees.
+    dict
+        A dictionary of dictionaries containing pointing information, organised
+        by source name.
     """
     if logger is None:
         logger = logger_setup.get_logger()
 
-    logger.info("Querying the pulsar catalogue...")
+    logger.debug("Querying the pulsar catalogue")
     query = psrqpy.QueryATNF(params=["PSRJ", "RAJ", "DECJ", "RAJD", "DECJD"])
     logger.info(f"Using ATNF pulsar catalogue version {query.get_version}")
     psrjs = list(query.table["PSRJ"])
@@ -453,10 +435,10 @@ def get_atnf_pulsars(logger: logging.Logger = None) -> list:
     rajds = list(query.table["RAJD"])
     decjds = list(query.table["DECJD"])
     # Loop through all the pulsars and store the pointings in dictionaries
-    pointings = []
+    pointings = dict()
     for psrj, raj, decj, rajd, decjd in zip(psrjs, rajs, decjs, rajds, decjds):
         raj = format_sexigesimal(raj, logger=logger)
         decj = format_sexigesimal(decj, add_sign=True, logger=logger)
-        pointing = dict(Name=psrj, RAJ=raj, DECJ=decj, RAJD=rajd, DECJD=decjd)
-        pointings.append(pointing)
+        pointing = dict(name=psrj, RAJ=raj, DECJ=decj, RAJD=rajd, DECJD=decjd)
+        pointings[psrj] = pointing
     return pointings

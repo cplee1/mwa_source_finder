@@ -63,24 +63,24 @@ def get_metadata(
             )
         except urllib.error.HTTPError as err:
             logger.error(
-                "HTTP error from server: code=%d, response: %s" % (err.code, err.read())
+                f"HTTP error from server: code={err.code}, response: {err.read()}"
             )
             if retry_http_error:
-                logger.error("Waiting {} seconds and trying again".format(wait_time))
+                logger.error(f"Waiting {wait_time} seconds and trying again")
                 time.sleep(wait_time)
                 pass
             else:
-                raise err
+                logger.error(err)
                 break
         except urllib.error.URLError as err:
-            logger.error("URL or network error: %s" % err.reason)
-            logger.error("Waiting {} seconds and trying again".format(wait_time))
+            logger.error(f"URL or network error: {err.reason}")
+            logger.error(f"Waiting {wait_time} seconds and trying again")
             time.sleep(wait_time)
             pass
         else:
             break
     else:
-        logger.error("Tried {} times. Exiting.".format(retries))
+        logger.error(f"Tried {retries} times. Exiting.")
 
     return result
 
@@ -98,37 +98,49 @@ def get_common_metadata(obsid: int, logger: logging.Logger = None) -> dict:
     Returns
     -------
     dict
-        A dictionary of commonly used metadata:
-            duration : int
-                The observation duration in seconds.
-            delays : list
-                A list with two items:
-                    xdelays : list
-                        The delays for the X polarisation.
-                    ydelays : list
-                        The delays for the Y polarisation.
-            channels : list
-                The frequency channels in MHz.
-            bandwidth : float
-                The bandwidth in MHz.
-            centrefreq : float
-                The centre frequency in MHz.
+        A dictionary of commonly used metadata.
     """
     if logger is None:
         logger = logger_setup.get_logger()
 
     metadata = get_metadata(service="obs", params={"obs_id": obsid}, logger=logger)
-    minfreq = float(min(metadata["rfstreams"]["0"]["frequencies"]))
-    maxfreq = float(max(metadata["rfstreams"]["0"]["frequencies"]))
-    xdelays = metadata["rfstreams"]["0"]["xdelays"]
-    ydelays = metadata["rfstreams"]["0"]["ydelays"]
-    channels = metadata["rfstreams"]["0"]["frequencies"]
+    
+    if metadata is None:
+        logger.error(f"Could not get metadata for obs ID: {obsid}")
+        return None
+    
+    # with open(f"{obsid}_meta.json", "w") as meta_file:
+    #     meta_file.write(json.dumps(metadata, indent=4))
+    
+    if metadata["deleted"]:
+        logger.debug(f"Observation is deleted: {obsid}")
+        return None
+
+    try:
+        start_t = metadata["starttime"]
+        stop_t = metadata["stoptime"]
+        duration = stop_t - start_t
+        delays = metadata["rfstreams"]["0"]["xdelays"]
+        channels = metadata["rfstreams"]["0"]["frequencies"]
+        minfreq = float(min(metadata["rfstreams"]["0"]["frequencies"]))
+        maxfreq = float(max(metadata["rfstreams"]["0"]["frequencies"]))
+        azimuth = metadata["rfstreams"]["0"]["azimuth"]
+        altitude = metadata["rfstreams"]["0"]["elevation"]
+    except KeyError:
+        logger.error(f"Incomplete metadata for obs ID: {obsid}")
+        return None
+
     common_metadata = dict(
-        duration=metadata["stoptime"] - metadata["starttime"],
-        delays=[xdelays, ydelays],
+        obsid=obsid,
+        start_t=start_t,
+        stop_t=stop_t,
+        duration=duration,
+        delays=delays,
         channels=channels,
         bandwidth=1.28 * (channels[-1] - channels[0] + 1),
         centrefreq=1.28 * (minfreq + 0.5 * (maxfreq - minfreq)),
+        azimuth=azimuth,
+        altitude=altitude,
     )
     return common_metadata
 
@@ -153,10 +165,10 @@ def get_all_obsids(pagesize: int = 50, logger: logging.Logger = None) -> list:
 
     legacy_params = {"mode": "VOLTAGE_START"}
     mwax_params = {"mode": "MWAX_VCS"}
+    obsids = []
     for params in [legacy_params, mwax_params]:
         logger.debug(f"Searching {params['mode']} observations")
         params["pagesize"] = pagesize
-        obsids = []
         temp = []
         page = 1
         # Need to ask for a page of results at a time
