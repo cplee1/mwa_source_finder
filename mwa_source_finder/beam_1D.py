@@ -409,8 +409,8 @@ def plot_power_vs_time(
         setup_ticks(ax)
         ax.grid(ls=":", color="0.5")
         ax.set_xlim([0, max_duration])
-        ax.set_xlabel("Time [s]")
-        ax.set_ylabel("Power [normalised]")
+        ax.set_xlabel("Time since start of observation [s]")
+        ax.set_ylabel("Zenith-normalised beam power")
         fig.legend(
             loc="upper center",
             bbox_to_anchor=(0.5, -0.02),
