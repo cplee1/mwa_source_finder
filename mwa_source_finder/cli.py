@@ -1,7 +1,7 @@
 import sys
 import argparse
 
-from mwa_source_finder import logger_setup, finder, file_output, plotting
+from mwa_source_finder import logger_setup, finder, file_output, plotting, obs_planning
 
 
 def load_items_from_file(filename: str) -> list:
@@ -170,6 +170,14 @@ def main():
         help="Make a plot of the source power over time for each obs ID for each "
         + "source. Only available in obs-for-source mode.",
     )
+    out_args.add_argument(
+        "--plan_obs_length",
+        type=float,
+        default=None,
+        help="Find the best observation for a source based on the mean power, then "
+        + "plan the start and stop times of an observation of the specified length, "
+        + "in seconds. Only available in obs-for-source mode.",
+    )
 
     args = parser.parse_args()
 
@@ -262,12 +270,24 @@ def main():
     )
 
     if args.obs_for_source:
+        if args.plan_obs_length is not None:
+            obs_plan = obs_planning.find_best_obs_times_for_sources(
+                pointings.keys(),
+                all_obs_metadata,
+                beam_coverage,
+                obs_length=args.plan_obs_length,
+                logger=logger,
+            )
+        else:
+            obs_plan = None
+
         file_output.write_output_source_files(
             finder_results,
             all_obs_metadata,
             args.freq_mode,
             args.norm_mode,
             args.min_power,
+            obs_plan=obs_plan,
             logger=logger,
         )
 

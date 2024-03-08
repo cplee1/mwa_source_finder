@@ -392,6 +392,7 @@ def source_beam_coverage(
                     beam_exit,
                     np.amax(source_power),
                     source_power,
+                    times - float(obsid),
                 ]
         if not beam_coverage[obsid]:
             beam_coverage.pop(obsid)

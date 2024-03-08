@@ -12,6 +12,7 @@ def write_output_source_files(
     freq_mode: str,
     norm_mode: str,
     min_power: float,
+    obs_plan: dict = None,
     logger: logging.Logger = None,
 ):
     """Write finder results for each source.
@@ -61,6 +62,17 @@ def write_output_source_files(
         data.write(out_file, format="ascii.fixed_width_two_line", overwrite=True)
 
         divider_str = "# " + "-" * 78 + "\n"
+        if obs_plan is not None:
+            best_obsid, start_t, stop_t = obs_plan[source]
+            obs_plan_str = (
+                "# Observation plan:\n"
+                + f"# Best obs   -- {best_obsid}\n"
+                + f"# Start time -- {start_t:.0f} s\n"
+                + f"# Stop time  -- {stop_t:.0f} s\n"
+                + divider_str
+            )
+        else:
+            obs_plan_str = ""
         header = (
             divider_str
             + "# Source finder settings:\n"
@@ -68,6 +80,7 @@ def write_output_source_files(
             + f"# Norm. mode -- {norm_mode}\n"
             + f"# Min power  -- {min_power:.2f}\n"
             + divider_str
+            + obs_plan_str
             + "# Column headers:\n"
             + "# Obs ID -- Observation ID\n"
             + "# Enter  -- The fraction of the observation when the source enters the beam\n"

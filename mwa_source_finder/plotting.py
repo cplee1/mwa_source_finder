@@ -35,7 +35,7 @@ def plot_power_vs_time(
     Parameters
     ----------
     source_names : list
-        A list of pointing dictionaries.
+        A list of source names.
     all_obs_metadata : dict
         A dictionary of metadata dictionaries.
     beam_coverage : dict
@@ -82,7 +82,7 @@ def plot_power_vs_time(
                 obs_duration = all_obs_metadata[obsid]["duration"]
                 if obs_duration > max_duration:
                     max_duration = obs_duration
-                _, _, _, source_power = beam_coverage[obsid][source_name]
+                _, _, _, source_power, _ = beam_coverage[obsid][source_name]
 
                 # Plot powers
                 times_sec = np.linspace(0, obs_duration, len(source_power))
@@ -268,7 +268,7 @@ def plot_beam_sky_map(
         # Power vs time plot
         # ----------------------------------------------------------------------
         ax_1D = plt.subplot(gs[1])
-        _, _, _, source_power = beam_coverage[obs_metadata["obsid"]][source_name]
+        _, _, _, source_power, _ = beam_coverage[obs_metadata["obsid"]][source_name]
 
         power_dt = np.linspace(0, obs_metadata["duration"], len(source_power))
         ax_1D.errorbar(
