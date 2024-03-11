@@ -9,12 +9,15 @@ To install, clone the repository and navigate to the source code directory, then
 Once installed, the command line interface can be accessed with `source-finder`.
 
 ## Examples
+Here we show simple examples of how to use the command line interface. The opions
+in square brackets are the available visualisations for the particular command.
+
 To search for all pulsars in an observation, run
 
-    source-finder -o <obs ID>
+    source-finder -o <obs ID> [--beam_plot]
 
-To search for all VCS observations with a pulsar in it, run
+To search for all VCS observations with a source in it, run
 
-    source-finder --obs_for_source -s <NAME>
+    source-finder --obs_for_source -s <NAME> [--beam_plot] [--time_plot]
 
-The `-s` option also accepts pointings as `RA_DEC` coordinates.
+where the `-s` option accepts pointings as either pulsar names or `RA_DEC` coordinates.
