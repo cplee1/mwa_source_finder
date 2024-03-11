@@ -64,11 +64,14 @@ def write_output_source_files(
         divider_str = "# " + "-" * 78 + "\n"
         if obs_plan is not None:
             best_obsid, start_t, stop_t = obs_plan[source]
+            gps_start_t = obs_metadata_dict[best_obsid]["start_t"]
             obs_plan_str = (
                 "# Observation plan:\n"
-                + f"# Best obs   -- {best_obsid}\n"
-                + f"# Start time -- {start_t:.0f} s\n"
-                + f"# Stop time  -- {stop_t:.0f} s\n"
+                + f"# Best obs          -- {best_obsid}\n"
+                + f"# Start GPS time    -- {gps_start_t+start_t:.0f} s\n"
+                + f"# Stop GPS time     -- {gps_start_t+stop_t:.0f} s\n"
+                + f"# Start time offset -- {start_t:.0f} s\n"
+                + f"# Stop time offset  -- {stop_t:.0f} s\n"
                 + divider_str
             )
         else:
@@ -76,9 +79,9 @@ def write_output_source_files(
         header = (
             divider_str
             + "# Source finder settings:\n"
-            + f"# Freq. mode -- {freq_mode}\n"
-            + f"# Norm. mode -- {norm_mode}\n"
-            + f"# Min power  -- {min_power:.2f}\n"
+            + f"# Freq mode      -- {freq_mode}\n"
+            + f"# Norm mode      -- {norm_mode}\n"
+            + f"# Min norm power -- {min_power:.2f}\n"
             + divider_str
             + obs_plan_str
             + "# Column headers:\n"
@@ -155,6 +158,8 @@ def write_output_obs_files(
         data.write(out_file, format="ascii.fixed_width_two_line", overwrite=True)
 
         obs_metadata = obs_metadata_dict[obsid]
+        t_start_offset = t_start*obs_metadata['duration']
+        t_stop_offset = t_end*obs_metadata['duration']
         divider_str = "# " + "-" * 78 + "\n"
         header = (
             divider_str
@@ -165,11 +170,13 @@ def write_output_obs_files(
             + f"# Duration    -- {obs_metadata['duration']:.0f} s\n"
             + divider_str
             + "# Source finder settings:\n"
-            + f"# Start time -- {t_start*obs_metadata['duration']:.2f} s\n"
-            + f"# End time   -- {t_end*obs_metadata['duration']:.2f} s\n"
-            + f"# Frequency  -- {obs_metadata['evalfreq']/1e6:.2f} MHz\n"
-            + f"# Beam norm  -- {norm_mode}\n"
-            + f"# Min power  -- {min_power:.2f}\n"
+            + f"# Start GPS time    -- {t_start_offset+obs_metadata['start_t']:.0f} s\n"
+            + f"# Stop GPS time     -- {t_stop_offset+obs_metadata['start_t']:.0f} s\n"
+            + f"# Start time offset -- {t_start_offset:.0f} s\n"
+            + f"# Stop time offset  -- {t_stop_offset:.0f} s\n"
+            + f"# Frequency         -- {obs_metadata['evalfreq']/1e6:.2f} MHz\n"
+            + f"# Beam norm         -- {norm_mode}\n"
+            + f"# Min norm power    -- {min_power:.2f}\n"
             + divider_str
             + "# Column headers:\n"
             + "# Name  -- Source name\n"
