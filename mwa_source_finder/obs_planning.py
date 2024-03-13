@@ -3,37 +3,26 @@ from typing import Tuple
 import csv
 
 import numpy as np
-import matplotlib.pyplot as plt
 
-from mwa_source_finder import logger_setup, beam_utils
+from mwa_source_finder import logger_setup
 
 
-def round_down(time, chunksize=8):
-    """Round down to the nearest multiple of 'chunksize'"""
+def round_down(time: float, chunksize: float = 8.) -> float:
+    """Round the time down to the nearest multiple of the chunksize.
+
+    Parameters
+    ----------
+    time : float
+        The time to round.
+    chunksize : float, optional
+        The multiple to round to, in the same units as the time, by default 8.
+
+    Returns
+    -------
+    float
+        The rounded time.
+    """
     return time - (time % chunksize)
-
-
-def round_up(time, chunksize=8):
-    """Round up to the nearest multiple of 'chunksize'"""
-    return time + (chunksize - (time % chunksize)) % chunksize
-
-
-def locate_contiguous_ranges(data, min_length):
-    """Find contiguous ranges of minimum length 'min_length'"""
-    diff = np.diff(data)
-    start_indices = np.where(diff == 1)[0]
-    end_indices = np.where(diff == -1)[0] + 1
-
-    if len(start_indices) == 0:
-        return []
-
-    end_indices = np.clip(end_indices, a_min=min_length, a_max=len(data))
-    valid_ranges = [
-        (start, end)
-        for start, end in zip(start_indices, end_indices)
-        if end - start >= min_length
-    ]
-    return valid_ranges
 
 
 def plan_obs_times(
@@ -117,7 +106,6 @@ def plan_obs_times(
     return start_t, stop_t, peak_time
 
 
-# TODO: If the best observation is too short, use the second best, etc
 def find_best_obs_times_for_sources(
     source_names: list,
     all_obs_metadata: dict,
@@ -149,84 +137,171 @@ def find_best_obs_times_for_sources(
     -------
     dict
         A dictionary organised by source name, with each entry being a
-        dictionary containing the obs ID, peak time, start time, and stop time,
-        of the best observation.
+        dictionary containing the obs ID, peak time, best start time, and best
+        stop time, of the best observation.
     """
     if logger is None:
         logger = logger_setup.get_logger()
 
+    # The plan will be stored as a dictionary of source names
     obs_plan = dict()
-    for source_name in source_names:
-        obsid_list, mean_power_list = [], []
+
+    # Loop through all specified sources
+    for source in source_names:
+        obsids = []
+        mean_powers = []
+
+        # Check for source beam coverage in all observations
         for obsid in all_obs_metadata:
-            if source_name in beam_coverage[obsid]:
-                _, _, _, source_power, _ = beam_coverage[obsid][source_name]
-                obsid_list.append(obsid)
-                mean_power_list.append(np.mean(source_power))
-        best_obsid = obsid_list[np.argmax(np.array(mean_power_list))]
-        beam_enter, beam_exit, _, best_obsid_power, best_obsid_times = beam_coverage[
-            best_obsid
-        ][source_name]
-        best_obs_metadata = all_obs_metadata[best_obsid]
+            if source in beam_coverage[obsid]:
+                _, _, _, source_power, _ = beam_coverage[obsid][source]
+                obsids.append(obsid)
+                mean_powers.append(np.mean(source_power))
+
+        # Get beam coverage and metadata of best observation
+        best_obsid = obsids[np.argmax(np.array(mean_powers))]
+        _, _, _, powers, times = beam_coverage[best_obsid][source]
+        obs_metadata = all_obs_metadata[best_obsid]
+
+        # Find the best start/stop times for the best observation
         start_t, stop_t, peak_time = plan_obs_times(
-            best_obs_metadata,
-            best_obsid_power,
-            best_obsid_times,
+            obs_metadata,
+            powers,
+            times,
             obs_length=obs_length,
             logger=logger,
         )
-        beam_enter_sec = beam_enter * best_obs_metadata["duration"]
-        beam_exit_sec = beam_exit * best_obs_metadata["duration"]
-        obs_plan[source_name] = dict(
+
+        # Store in the dictionary
+        obs_plan[source] = dict(
             obsid=best_obsid,
             peak_time=peak_time,
             optimal_range=(start_t, stop_t),
-            maximum_range=(beam_enter_sec, beam_exit_sec),
         )
     return obs_plan
 
 
-def plan_optimal_data_download(
-    obs_plan: dict, savename: str = None, logger: logging.Logger = None
-) -> dict:
+def plan_data_download(
+    obs_plan: dict,
+    savename: str = None,
+    logger: logging.Logger = None,
+) -> list:
+    """Generate a list of downloads from an observing plan.
+
+    Parameters
+    ----------
+    obs_plan : dict
+        A dictionary organised by source name, with each entry being a
+        dictionary containing the obs ID, peak time, best start time, and best
+        stop time, of the best observation.
+    savename : str, optional
+        The name of the output csv file, by default None.
+    logger : logging.Logger, optional
+        A custom logger to use, by default None.
+
+    Returns
+    -------
+    list
+        A list of tuples, each containing the obs ID, start time of the
+        download, stop time of the download, and the sources within the
+        downloaded data.
+    """
     if logger is None:
         logger = logger_setup.get_logger()
 
     # Get a list of unique obs IDs
-    all_obsids = [str(obs_plan[source_name]["obsid"]) for source_name in obs_plan]
+    all_obsids = [obs_plan[source]["obsid"] for source in obs_plan]
     unique_obsids = sorted(list(set(all_obsids)))
 
-    # Create a dictionary of start/stop times with obs IDs for keys
-    coverage = {key: {"sources": [], "optimal_times": []} for key in unique_obsids}
-    for source_name in obs_plan:
-        best_obsid = str(obs_plan[source_name]["obsid"])
-        optimal_range = obs_plan[source_name]["optimal_range"]
-        coverage[best_obsid]["sources"].append(source_name)
-        coverage[best_obsid]["optimal_times"].append(optimal_range)
+    # Create a dictionary of source observing times with obs IDs for keys
+    source_beam_ranges = {key: [] for key in unique_obsids}
+    for source in obs_plan:
+        best_obsid = obs_plan[source]["obsid"]
+        start_t, stop_t = obs_plan[source]["optimal_range"]
+        source_beam_ranges[best_obsid].append((source, start_t, stop_t))
 
-    # Find the min and max times and add them to the dictionary
+    download_plans = []
     for obsid in unique_obsids:
-        all_times = np.array(coverage[obsid]["optimal_times"]).flatten()
-        min_time = round_down(np.min(all_times), 8)
-        max_time = round_down(np.max(all_times), 8)
-        coverage[obsid]["min_time"] = min_time
-        coverage[obsid]["max_time"] = max_time
-        coverage[obsid]["duration"] = max_time - min_time
+        contig_ranges = find_contiguous_ranges(source_beam_ranges[obsid], 600)
+        for contig_range in contig_ranges:
+            start_time, stop_time, sources = contig_range
+            start_time = round_down(start_time, 8)
+            stop_time = round_down(stop_time, 8)
+            download_plans.append((obsid, start_time, stop_time, sources))
 
     # Write download plan to a csvfile
     if savename is not None:
         logger.info(f"Saving output file: {savename}")
-        with open(savename, "w") as f:
-            writer = csv.writer(f, delimiter=",")
+        with open(savename, "w") as csvfile:
+            writer = csv.writer(csvfile, delimiter=",")
             writer.writerow(["obsID", "start_time", "stop_time", "duration", "sources"])
-            for obsid in unique_obsids:
+            for download_plan in download_plans:
+                obsid, start_time, stop_time, sources = download_plan
                 writer.writerow(
                     [
                         obsid,
-                        f"{coverage[obsid]['min_time']:.0f}",
-                        f"{coverage[obsid]['max_time']:.0f}",
-                        f"{coverage[obsid]['duration']:.0f}",
-                        " ".join(coverage[obsid]["sources"]),
+                        f"{start_time:.0f}",
+                        f"{stop_time:.0f}",
+                        f"{stop_time-start_time:.0f}",
+                        " ".join(sources),
                     ]
                 )
-    return coverage
+    return download_plans
+
+
+def find_contiguous_ranges(sources: list, min_gap: float) -> list:
+    """Combine a list of intervals into a list of contiguous intervals.
+
+    Parameters
+    ----------
+    sources : list
+        A list of tuples, each containing the source name, the start of the
+        time interval, and the end of the time interval.
+    min_gap : float
+        The minimum gap between two intervals to count them as non-contiguous.
+        This is to ensure that downloads are separated enough to be worth
+        splitting up.
+
+    Returns
+    -------
+    list
+        A list of tuples, each containing the start time of the contiguous
+        time interval, the end time of the contiguous time interval, and the
+        names of the sources within that interval.
+    """
+    # Sort sources by entry time
+    sources.sort(key=lambda x: x[1])
+
+    # Initialize variables
+    inbeam_sources = []
+    contig_ranges = []
+    interval_start = None
+    interval_end = None
+
+    # Loop through each event (entry or exit)
+    for isource in range(len(sources)):
+        source_name, enter_time, exit_time = sources[isource]
+
+        # For the initial interval
+        if interval_start is None:
+            interval_start = enter_time
+        if interval_end is None:
+            interval_end = exit_time
+
+        if enter_time > interval_end + min_gap:
+            # If true, then start a new interval
+            contig_ranges.append([interval_start, interval_end, inbeam_sources])
+            inbeam_sources = [source_name]
+            interval_start = enter_time
+            interval_end = exit_time
+            continue
+
+        # Otherwise, source coverage overlaps (or nearly overlaps) with the interval
+        inbeam_sources.append(source_name)
+        if exit_time > interval_end:
+            interval_end = exit_time
+
+        # For the last source, close the interval
+        if isource == len(sources) - 1:
+            contig_ranges.append([interval_start, interval_end, inbeam_sources])
+    return contig_ranges

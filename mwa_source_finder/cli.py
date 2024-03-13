@@ -279,8 +279,8 @@ def main():
                 logger=logger,
             )
 
-            obs_planning.plan_optimal_data_download(
-                obs_plan, savename="obs_plan.csv", logger=logger
+            obs_planning.plan_data_download(
+                obs_plan, savename="observing_plan.csv", logger=logger
             )
         else:
             obs_plan = None
