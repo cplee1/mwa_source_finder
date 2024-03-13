@@ -230,7 +230,6 @@ def beam_enter_exit(
     times: np.ndarray,
     duration: float,
     min_power: float = 0.3,
-    logger: logging.Logger = None,
 ) -> Tuple[float, float]:
     """Find where a source enters and exits the beam.
 
@@ -244,8 +243,6 @@ def beam_enter_exit(
         The length of time searched in the observation.
     min_power : float, optional
         The minimum power to count as in the beam. By default 0.3.
-    logger : logging.Logger, optional
-        A custom logger to use, by default None.
 
     Returns
     -------
@@ -257,9 +254,6 @@ def beam_enter_exit(
             exit_beam : float
                 The fraction of the observation where the source exits the beam.
     """
-    if logger is None:
-        logger = logger_setup.get_logger()
-
     powers_offset = powers - min_power
 
     if np.min(powers_offset) > 0.0:
@@ -385,7 +379,6 @@ def source_beam_coverage(
                     times - float(obsid),
                     duration,
                     min_power=min_power,
-                    logger=logger,
                 )
                 beam_coverage[obsid][source_name] = [
                     beam_enter,

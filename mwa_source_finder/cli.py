@@ -278,6 +278,10 @@ def main():
                 obs_length=args.plan_obs_length,
                 logger=logger,
             )
+
+            obs_planning.plan_optimal_data_download(
+                obs_plan, savename="obs_plan.csv", logger=logger
+            )
         else:
             obs_plan = None
 
@@ -290,15 +294,6 @@ def main():
             obs_plan=obs_plan,
             logger=logger,
         )
-
-        if args.time_plot:
-            plotting.plot_power_vs_time(
-                pointings.keys(),
-                all_obs_metadata,
-                beam_coverage,
-                args.min_power,
-                logger=logger,
-            )
     else:
         file_output.write_output_obs_files(
             finder_results,
@@ -307,6 +302,16 @@ def main():
             args.end,
             args.norm_mode,
             args.min_power,
+            logger=logger,
+        )
+
+    if args.time_plot:
+        plotting.plot_power_vs_time(
+            pointings.keys(),
+            all_obs_metadata,
+            beam_coverage,
+            args.min_power,
+            args.obs_for_source,
             logger=logger,
         )
 

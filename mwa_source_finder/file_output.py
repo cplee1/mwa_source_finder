@@ -63,8 +63,11 @@ def write_output_source_files(
 
         divider_str = "# " + "-" * 78 + "\n"
         if obs_plan is not None:
-            best_obsid, start_t, stop_t = obs_plan[source]
+            source_obs_plan = obs_plan[source]
+            best_obsid = source_obs_plan["obsid"]
+            start_t, stop_t = source_obs_plan["optimal_range"]
             gps_start_t = obs_metadata_dict[best_obsid]["start_t"]
+            
             obs_plan_str = (
                 "# Observation plan:\n"
                 + f"# Best obs          -- {best_obsid}\n"

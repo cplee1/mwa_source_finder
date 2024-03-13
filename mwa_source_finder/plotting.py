@@ -15,12 +15,34 @@ plt.rcParams["font.family"] = "serif"
 plt.rcParams["font.size"] = 12
 
 
-def setup_ticks(ax, fontsize=12):
+LINE_STYLES = [
+    "-",
+    "--",
+    "-.",
+    ":",
+    (0, (5, 1, 1, 1, 1, 1)),
+    (0, (5, 1, 1, 1, 1, 1, 1, 1)),
+    (0, (5, 1, 5, 1, 1, 1)),
+    (0, (5, 1, 5, 1, 1, 1, 1, 1)),
+    (0, (5, 1, 5, 1, 5, 1, 1, 1)),
+    (0, (5, 1, 5, 1, 5, 1, 1, 1, 1, 1)),
+    (0, (5, 1, 1, 1, 5, 1, 5, 1, 1, 1)),
+    (0, (5, 1, 1, 1, 5, 1, 1, 1, 1, 1)),
+]
+
+
+def setup_axis(ax, duration, fontsize=12):
+    ax.set_ylim([0, 1])
+    ax.set_yticks((np.arange(11) / 10).tolist())
     ax.tick_params(axis="both", which="both", right=True, top=True)
     ax.tick_params(axis="both", which="major", labelsize=fontsize, length=4)
     ax.tick_params(axis="both", which="minor", length=2)
     ax.tick_params(axis="both", which="both", direction="in")
     ax.minorticks_on()
+    ax.grid(ls=":", color="0.5")
+    ax.set_xlim([0, duration])
+    ax.set_xlabel("Time since start of observation [s]")
+    ax.set_ylabel("Zenith-normalised beam power")
 
 
 def plot_power_vs_time(
@@ -28,6 +50,7 @@ def plot_power_vs_time(
     all_obs_metadata: dict,
     beam_coverage: dict,
     min_power: float,
+    obs_for_source: bool = False,
     logger: logging.Logger = None,
 ):
     """Make a plot of power vs time showing each obs ID for a source.
@@ -45,6 +68,8 @@ def plot_power_vs_time(
         the beam, and an array of powers for each time step.
     min_power : float
         The minimum power to count as in the beam.
+    obs_for_source : bool, optional
+        Whether to search for observations for each source, by default False.
     logger : logging.Logger, optional
         A custom logger to use, by default None.
     """
@@ -52,78 +77,104 @@ def plot_power_vs_time(
         logger = logger_setup.get_logger()
 
     line_combos = []
-    for lsi in [
-        "-",
-        "--",
-        "-.",
-        ":",
-        (0, (5, 1, 1, 1, 1, 1)),
-        (0, (5, 1, 1, 1, 1, 1, 1, 1)),
-        (0, (5, 1, 5, 1, 1, 1)),
-        (0, (5, 1, 5, 1, 1, 1, 1, 1)),
-        (0, (5, 1, 5, 1, 5, 1, 1, 1)),
-        (0, (5, 1, 5, 1, 5, 1, 1, 1, 1, 1)),
-        (0, (5, 1, 1, 1, 5, 1, 5, 1, 1, 1)),
-        (0, (5, 1, 1, 1, 5, 1, 1, 1, 1, 1)),
-    ]:
+    for lsi in LINE_STYLES:
         for coli in list(mcolors.TABLEAU_COLORS):
             line_combos.append([lsi, coli])
 
-    # Plot of power in each observation, one plot per source
-    for source_name in source_names:
-        ii = 0
-        max_duration = 0
+    if obs_for_source:
+        # Plot of power vs time for each observation, one plot per source
+        for source_name in source_names:
+            ii = 0
+            max_duration = 0
 
-        fig = plt.figure(figsize=(8, 4), dpi=300)
-        ax = fig.add_subplot(111)
+            fig = plt.figure(figsize=(8, 4), dpi=300)
+            ax = fig.add_subplot(111)
 
+            for obsid in all_obs_metadata:
+                if source_name in beam_coverage[obsid]:
+                    obs_duration = all_obs_metadata[obsid]["duration"]
+                    if obs_duration > max_duration:
+                        max_duration = obs_duration
+                    _, _, _, powers, times = beam_coverage[obsid][source_name]
+
+                    # Plot powers
+                    ax.errorbar(
+                        times,
+                        powers,
+                        ls=line_combos[ii][0],
+                        c=line_combos[ii][1],
+                        label=obsid,
+                    )
+                    ii += 1
+
+            ax.fill_between(
+                [0, max_duration],
+                0,
+                min_power,
+                color="grey",
+                alpha=0.2,
+                hatch="///",
+            )
+            setup_axis(ax, max_duration)
+            fig.legend(
+                loc="upper center",
+                bbox_to_anchor=(0.5, -0.02),
+                fancybox=True,
+                shadow=True,
+                ncol=3,
+            )
+            fig.suptitle(f"Source: {source_name}")
+
+            # Save fig
+            plot_name = f"{source_name}_power_vs_time.png"
+            logger.info(f"Saving plot file: {plot_name}")
+            fig.savefig(plot_name, bbox_inches="tight")
+            plt.close()
+    else:
+        # Plot of power vs time for each source, one plot per observation
         for obsid in all_obs_metadata:
-            if source_name in beam_coverage[obsid]:
-                obs_duration = all_obs_metadata[obsid]["duration"]
-                if obs_duration > max_duration:
-                    max_duration = obs_duration
-                _, _, _, source_power, _ = beam_coverage[obsid][source_name]
+            ii = 0
+            max_duration = all_obs_metadata[obsid]["duration"]
+
+            fig = plt.figure(figsize=(8, 4), dpi=300)
+            ax = fig.add_subplot(111)
+
+            for source_name in beam_coverage[obsid]:
+                _, _, _, powers, times = beam_coverage[obsid][source_name]
 
                 # Plot powers
-                times_sec = np.linspace(0, obs_duration, len(source_power))
                 ax.errorbar(
-                    times_sec,
-                    source_power,
+                    times,
+                    powers,
                     ls=line_combos[ii][0],
                     c=line_combos[ii][1],
                     label=obsid,
                 )
                 ii += 1
+            
+            ax.fill_between(
+                [0, max_duration],
+                0,
+                min_power,
+                color="grey",
+                alpha=0.2,
+                hatch="///",
+            )
+            setup_axis(ax, max_duration)
+            fig.legend(
+                loc="upper center",
+                bbox_to_anchor=(0.5, -0.02),
+                fancybox=True,
+                shadow=True,
+                ncol=3,
+            )
+            fig.suptitle(f"Obs ID: {obsid}")
 
-        ax.fill_between(
-            [0, max_duration],
-            0,
-            min_power,
-            color="grey",
-            alpha=0.2,
-            hatch="///",
-        )
-        ax.set_ylim([0, 1])
-        ax.set_yticks((np.arange(11) / 10).tolist())
-        setup_ticks(ax)
-        ax.grid(ls=":", color="0.5")
-        ax.set_xlim([0, max_duration])
-        ax.set_xlabel("Time since start of observation [s]")
-        ax.set_ylabel("Zenith-normalised beam power")
-        fig.legend(
-            loc="upper center",
-            bbox_to_anchor=(0.5, -0.02),
-            fancybox=True,
-            shadow=True,
-            ncol=3,
-        )
-        fig.suptitle(f"Source: {source_name}")
-
-        # Save fig
-        plot_name = f"{source_name}_power_vs_time.png"
-        logger.info(f"Saving plot file: {plot_name}")
-        fig.savefig(plot_name, bbox_inches="tight")
-        plt.close()
+            # Save fig
+            plot_name = f"{obsid}_power_vs_time.png"
+            logger.info(f"Saving plot file: {plot_name}")
+            fig.savefig(plot_name, bbox_inches="tight")
+            plt.close()
 
 
 def plot_beam_sky_map(
