@@ -161,9 +161,9 @@ def get_beam_power_vs_time(
 
     # Compute power for each source at each timestep
     P = np.zeros(shape=(len(pointings), len(times)), dtype=float)
+    logger.debug("Computing beam power over time for all sources")
     for itime, time in enumerate(times):
         _, Azs, ZAs = coord_utils.equatorial_to_horizontal(RAs, DECs, time)
-        logger.debug(f"Time step {itime}: Computing beam power")
         P[:, itime] = compute_beam_power_array(
             np.radians(Azs),
             np.radians(ZAs),
