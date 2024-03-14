@@ -11,10 +11,11 @@ Once installed, the command line interface can be accessed with `source-finder`.
 ## Examples
 Here we show simple examples of how to use the command line interface. The opions
 in square brackets are the available visualisations for the particular command.
+Note that additional features are detailed in the help information (`-h`).
 
 To search for all pulsars in an observation, run
 
-    source-finder -o <obs ID> [--beam_plot]
+    source-finder -o <obs ID> [--beam_plot] [--time_plot]
 
 To search for all VCS observations with a source in it, run
 
