@@ -98,6 +98,12 @@ def plot_power_vs_time(
                     _, _, _, powers, times = beam_coverage[obsid][source_name]
 
                     # Plot powers
+                    if ii >= len(line_combos):
+                        logger.error(
+                            f"Source {source_name}: Too many obs IDs to make a power vs time plot. Skipping."
+                        )
+                        return
+                
                     ax.errorbar(
                         times,
                         powers,
@@ -143,15 +149,21 @@ def plot_power_vs_time(
                 _, _, _, powers, times = beam_coverage[obsid][source_name]
 
                 # Plot powers
+                if ii >= len(line_combos):
+                    logger.error(
+                        f"Obs ID {obsid}: Too many sources to make a power vs time plot. Skipping."
+                    )
+                    return
+
                 ax.errorbar(
                     times,
                     powers,
                     ls=line_combos[ii][0],
                     c=line_combos[ii][1],
-                    label=obsid,
+                    label=source_name,
                 )
                 ii += 1
-            
+
             ax.fill_between(
                 [0, max_duration],
                 0,
