@@ -178,6 +178,15 @@ def main():
         + "plan the start and stop times of an observation of the specified length, "
         + "in seconds. Only available in obs-for-source mode.",
     )
+    out_args.add_argument(
+        "--download_plan",
+        action="store_true",
+        help="When used in combination with --plan_obs_length, will find the best"
+        + "observing times for each source, then find the 'contiguous' time intervals "
+        + "during each observation when at least one source is in its optimal "
+        + "observing period. An interval is considered 'non-contiguous' when no "
+        + "sources are in their optimal observing period for more than 10 min.",
+    )
 
     args = parser.parse_args()
 
@@ -279,9 +288,10 @@ def main():
                 logger=logger,
             )
 
-            obs_planning.plan_data_download(
-                obs_plan, savename="observing_plan.csv", logger=logger
-            )
+            if args.download_plan:
+                obs_planning.plan_data_download(
+                    obs_plan, savename="download_plan.csv", logger=logger
+                )
         else:
             obs_plan = None
 
