@@ -161,9 +161,9 @@ def get_beam_power_vs_time(
 
     # Compute power for each source at each timestep
     P = np.zeros(shape=(len(pointings), len(times)), dtype=float)
+    logger.debug("Computing beam power over time for all sources")
     for itime, time in enumerate(times):
         _, Azs, ZAs = coord_utils.equatorial_to_horizontal(RAs, DECs, time)
-        logger.debug(f"Time step {itime}: Computing beam power")
         P[:, itime] = compute_beam_power_array(
             np.radians(Azs),
             np.radians(ZAs),
@@ -230,7 +230,6 @@ def beam_enter_exit(
     times: np.ndarray,
     duration: float,
     min_power: float = 0.3,
-    logger: logging.Logger = None,
 ) -> Tuple[float, float]:
     """Find where a source enters and exits the beam.
 
@@ -244,8 +243,6 @@ def beam_enter_exit(
         The length of time searched in the observation.
     min_power : float, optional
         The minimum power to count as in the beam. By default 0.3.
-    logger : logging.Logger, optional
-        A custom logger to use, by default None.
 
     Returns
     -------
@@ -257,9 +254,6 @@ def beam_enter_exit(
             exit_beam : float
                 The fraction of the observation where the source exits the beam.
     """
-    if logger is None:
-        logger = logger_setup.get_logger()
-
     powers_offset = powers - min_power
 
     if np.min(powers_offset) > 0.0:
@@ -385,13 +379,13 @@ def source_beam_coverage(
                     times - float(obsid),
                     duration,
                     min_power=min_power,
-                    logger=logger,
                 )
                 beam_coverage[obsid][source_name] = [
                     beam_enter,
                     beam_exit,
                     np.amax(source_power),
                     source_power,
+                    times - float(obsid),
                 ]
         if not beam_coverage[obsid]:
             beam_coverage.pop(obsid)

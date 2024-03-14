@@ -138,7 +138,7 @@ def find_sources_in_obs(
             source_data = []
             for obsid in obsids:
                 if source_name in beam_coverage[obsid]:
-                    enter_beam, exit_beam, max_power, _ = beam_coverage[obsid][
+                    enter_beam, exit_beam, max_power, _, _ = beam_coverage[obsid][
                         source_name
                     ]
                     source_data.append([obsid, enter_beam, exit_beam, max_power])
@@ -149,7 +149,7 @@ def find_sources_in_obs(
             for source_name in pointings:
                 pointing = pointings[source_name]
                 if source_name in beam_coverage[obsid]:
-                    enter_beam, exit_beam, max_power, _ = beam_coverage[obsid][
+                    enter_beam, exit_beam, max_power, _, _ = beam_coverage[obsid][
                         source_name
                     ]
                     obsid_data.append([source_name, enter_beam, exit_beam, max_power])
