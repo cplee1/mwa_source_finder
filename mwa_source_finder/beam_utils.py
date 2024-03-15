@@ -354,6 +354,7 @@ def source_beam_coverage(
         sys.exit(1)
 
     beam_coverage = dict()
+    obsids_to_remove = []
     for obsid in obsids:
         beam_coverage[obsid] = dict()
         obs_metadata = all_obs_metadata[obsid]
@@ -388,6 +389,10 @@ def source_beam_coverage(
                     times - float(obsid),
                 ]
         if not beam_coverage[obsid]:
-            beam_coverage.pop(obsid)
-            all_obs_metadata.pop(obsid)
+            obsids_to_remove.append(obsid)
+
+    for obsid in obsids_to_remove:
+        beam_coverage.pop(obsid)
+        all_obs_metadata.pop(obsid)
+    
     return beam_coverage, all_obs_metadata

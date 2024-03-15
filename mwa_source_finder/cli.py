@@ -108,6 +108,12 @@ def main():
         default=1.0,
         help="End time of the search, as a fraction of the full observation.",
     )
+    obs_args.add_argument(
+        "--filter_available",
+        action="store_true",
+        help="Only search observations with data files available. "
+        + "This will increase the time taken to obtain the metadata.",
+    )
 
     # Functionality arguments
     finder_args = parser.add_argument_group(
@@ -271,6 +277,7 @@ def main():
         args.start,
         args.end,
         obs_for_source=args.obs_for_source,
+        filter_available=args.filter_available,
         input_dt=args.dt,
         norm_mode=args.norm_mode,
         min_power=args.min_power,
