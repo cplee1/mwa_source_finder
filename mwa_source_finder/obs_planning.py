@@ -158,6 +158,10 @@ def find_best_obs_times_for_sources(
                 obsids.append(obsid)
                 mean_powers.append(np.mean(source_power))
 
+        if len(mean_powers) == 0:
+            logger.info(f"No obs IDs found for source {source}. Omitting from download plan.")
+            continue
+
         # Get beam coverage and metadata of best observation
         best_obsid = obsids[np.argmax(np.array(mean_powers))]
         _, _, _, powers, times = beam_coverage[best_obsid][source]
