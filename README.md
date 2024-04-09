@@ -31,3 +31,6 @@ To search for all observations with a given source in it, run
     source-finder --obs_for_source -s <NAME> [--beam_plot] [--time_plot]
 
 where the `-s` option accepts pointings as either pulsar names or `RA_DEC` coordinates.
+The `--filter_available` option can be used in obs-for-source mode to only search
+observations which have data available in the MWA archive. This additional step will
+increase the execution time as it requires additional metadata checks.
