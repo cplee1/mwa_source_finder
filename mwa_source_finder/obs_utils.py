@@ -85,13 +85,17 @@ def get_metadata(
     return result
 
 
-def get_common_metadata(obsid: int, logger: logging.Logger = None) -> dict:
+def get_common_metadata(
+    obsid: int, filter_available: bool = False, logger: logging.Logger = None
+) -> dict:
     """Get observation metadata and extract some commonly used data.
 
     Parameters
     ----------
     obsid : int
         The observation ID.
+    filter_available : bool, optional
+        Only search observations with data files available, by default False.
     logger : logging.Logger, optional
         A custom logger to use, by default None.
 
@@ -103,29 +107,52 @@ def get_common_metadata(obsid: int, logger: logging.Logger = None) -> dict:
     if logger is None:
         logger = logger_setup.get_logger()
 
-    metadata = get_metadata(service="obs", params={"obs_id": obsid}, logger=logger)
-    
-    if metadata is None:
+    obs_metadata = get_metadata(service="obs", params={"obs_id": obsid}, logger=logger)
+    if obs_metadata is None:
         logger.error(f"Could not get metadata for obs ID: {obsid}")
         return None
-    
+
     # with open(f"{obsid}_meta.json", "w") as meta_file:
-    #     meta_file.write(json.dumps(metadata, indent=4))
-    
-    if metadata["deleted"]:
+    #     meta_file.write(json.dumps(obs_metadata, indent=4))
+
+    if obs_metadata["deleted"]:
         logger.debug(f"Observation is deleted: {obsid}")
         return None
 
+    if filter_available:
+        # Check that there are available data files
+        files_metadata = get_metadata(
+            service="data_files",
+            params={"obs_id": obsid},
+            logger=logger,
+        )
+        if files_metadata is None:
+            logger.error(f"Could not get files metadata for obs ID: {obsid}")
+            return None
+
+        data_available = False
+        for filename in files_metadata:
+            if files_metadata[filename]["filetype"] in [11, 16, 17]:
+                deleted = files_metadata[filename]["deleted"]
+                remote_archived = files_metadata[filename]["remote_archived"]
+                if remote_archived and not deleted:
+                    data_available = True
+                    break
+
+        if not data_available:
+            logger.debug(f"No data available for observation: {obsid}")
+            return None
+
     try:
-        start_t = metadata["starttime"]
-        stop_t = metadata["stoptime"]
+        start_t = obs_metadata["starttime"]
+        stop_t = obs_metadata["stoptime"]
         duration = stop_t - start_t
-        delays = metadata["rfstreams"]["0"]["xdelays"]
-        channels = metadata["rfstreams"]["0"]["frequencies"]
-        minfreq = float(min(metadata["rfstreams"]["0"]["frequencies"]))
-        maxfreq = float(max(metadata["rfstreams"]["0"]["frequencies"]))
-        azimuth = metadata["rfstreams"]["0"]["azimuth"]
-        altitude = metadata["rfstreams"]["0"]["elevation"]
+        delays = obs_metadata["rfstreams"]["0"]["xdelays"]
+        channels = obs_metadata["rfstreams"]["0"]["frequencies"]
+        minfreq = float(min(obs_metadata["rfstreams"]["0"]["frequencies"]))
+        maxfreq = float(max(obs_metadata["rfstreams"]["0"]["frequencies"]))
+        azimuth = obs_metadata["rfstreams"]["0"]["azimuth"]
+        altitude = obs_metadata["rfstreams"]["0"]["elevation"]
     except KeyError:
         logger.error(f"Incomplete metadata for obs ID: {obsid}")
         return None

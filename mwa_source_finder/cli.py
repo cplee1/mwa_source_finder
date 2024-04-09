@@ -108,6 +108,12 @@ def main():
         default=1.0,
         help="End time of the search, as a fraction of the full observation.",
     )
+    obs_args.add_argument(
+        "--filter_available",
+        action="store_true",
+        help="Only search observations with data files available. "
+        + "This will increase the time taken to obtain the metadata.",
+    )
 
     # Functionality arguments
     finder_args = parser.add_argument_group(
@@ -133,14 +139,14 @@ def main():
         default=0.3,
         help="Minimum normalised power to count as in the beam.",
     )
-    finder_args.add_argument(
-        "--norm_mode",
-        type=str,
-        choices=["zenith", "beam"],
-        default="zenith",
-        help="Beam power normalisation mode. 'zenith' will normalise to power at zenith. "
-        + "'beam' will normalise to the peak of the primary beam [not implemented].",
-    )
+    # finder_args.add_argument(
+    #     "--norm_mode",
+    #     type=str,
+    #     choices=["zenith", "beam"],
+    #     default="zenith",
+    #     help="Beam power normalisation mode. 'zenith' will normalise to power at zenith. "
+    #     + "'beam' will normalise to the peak of the primary beam [not implemented].",
+    # )
     finder_args.add_argument(
         "--freq_mode",
         type=str,
@@ -202,7 +208,7 @@ def main():
         and not args.source_for_all_obs
     ):
         logger.error("No sources or observations specified.")
-        logger.info(
+        logger.error(
             "If you would like to search for all sources in all obs IDs, "
             + "use the --source_for_all_obs option."
         )
@@ -212,9 +218,10 @@ def main():
         logger.error("Normalised power must be between 0 and 1.")
         sys.exit(1)
 
-    if args.norm_mode == "beam":
-        logger.error("'beam' normalisation mode is not yet implemented.")
-        sys.exit(1)
+    norm_mode = "zenith"
+    # if args.norm_mode == "beam":
+    #     logger.error("'beam' normalisation mode is not yet implemented.")
+    #     sys.exit(1)
 
     if (
         args.obsids is None
@@ -223,7 +230,7 @@ def main():
         and not args.source_for_all_obs
     ):
         logger.error("No obs IDs specified while in source-for-obs mode.")
-        logger.info(
+        logger.error(
             "If you would like to search for sources in all obs IDs, "
             + "use the --source_for_all_obs option."
         )
@@ -232,6 +239,14 @@ def main():
     if args.obs_for_source and (args.start != 0.0 or args.end != 1.0):
         logger.error("Custom start and end time not available in obs-for-source mode.")
         sys.exit(1)
+
+    if not args.obs_for_source and args.plan_obs_length:
+        logger.warning("The --plan_obs_length option will do nothing in "
+                       + "source-for-obs mode.")
+        
+    if not args.obs_for_source and args.download_plan:
+        logger.warning("The --download_plan option will do nothing in "
+                       + "source-for-obs mode.")
 
     # Get sources from command line, if specified
     if args.sources or args.sources_file:
@@ -271,8 +286,9 @@ def main():
         args.start,
         args.end,
         obs_for_source=args.obs_for_source,
+        filter_available=args.filter_available,
         input_dt=args.dt,
-        norm_mode=args.norm_mode,
+        norm_mode=norm_mode,
         min_power=args.min_power,
         freq_mode=args.freq_mode,
         logger=logger,
@@ -299,7 +315,7 @@ def main():
             finder_results,
             all_obs_metadata,
             args.freq_mode,
-            args.norm_mode,
+            norm_mode,
             args.min_power,
             obs_plan=obs_plan,
             logger=logger,
@@ -310,7 +326,7 @@ def main():
             all_obs_metadata,
             args.start,
             args.end,
-            args.norm_mode,
+            norm_mode,
             args.min_power,
             logger=logger,
         )

@@ -11,6 +11,7 @@ def find_sources_in_obs(
     t_start: float = 0.0,
     t_end: float = 1.0,
     obs_for_source: bool = False,
+    filter_available: bool = False,
     input_dt: float = 60.0,
     norm_mode: str = "zenith",
     min_power: float = 0.3,
@@ -31,6 +32,8 @@ def find_sources_in_obs(
         The end time to search, as a fraction of the full observation.
     obs_for_source : bool, optional
         Whether to search for observations for each source, by default False.
+    filter_available : bool, optional
+        Only search observations with data files available, by default False.
     input_dt : float, optional
         The input step size in time (may be reduced), by default 60.
     norm_mode : str, optional
@@ -105,12 +108,19 @@ def find_sources_in_obs(
         logger.info(f"{len(obsids)} observations found")
 
     all_obs_metadata = dict()
+    logger.info("Obtaining metadata for observations...")
     for obsid in obsids:
         logger.debug(f"Obtaining metadata for obs ID: {obsid}")
-        obs_metadata_tmp = obs_utils.get_common_metadata(obsid, logger)
+        obs_metadata_tmp = obs_utils.get_common_metadata(
+            obsid, filter_available, logger
+        )
         if obs_metadata_tmp is not None:
             all_obs_metadata[obsid] = obs_metadata_tmp
-    obsids = list(all_obs_metadata)
+    obsids = all_obs_metadata.keys()
+
+    if len(obsids) == 0:
+        logger.info("No observations available.")
+        sys.exit(1)
 
     logger.info("Finding sources in beams...")
     beam_coverage, all_obs_metadata = beam_utils.source_beam_coverage(
@@ -125,7 +135,7 @@ def find_sources_in_obs(
         freq_mode=freq_mode,
         logger=logger,
     )
-    obsids = list(beam_coverage)
+    obsids = beam_coverage.keys()
 
     if not beam_coverage:
         logger.info("No sources found in beams.")
