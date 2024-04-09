@@ -132,12 +132,10 @@ def get_common_metadata(
 
         data_available = False
         for filename in files_metadata:
-            if (
-                filename.endswith("dat")
-                or filename.endswith("sub")
-                or filename.endswith("tar")
-            ):
-                if not files_metadata[filename]["deleted"]:
+            if files_metadata[filename]["filetype"] in [11, 16, 17]:
+                deleted = files_metadata[filename]["deleted"]
+                remote_archived = files_metadata[filename]["remote_archived"]
+                if remote_archived and not deleted:
                     data_available = True
                     break
 
