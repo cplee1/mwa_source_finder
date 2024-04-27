@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mwa_source_finder"
 authors = [
-    { name = "Christopher Lee", email = "c.p.lee@postgrad.edu.au" },
+    { name = "Christopher Lee", email = "christopher.lee@icrar.org" },
     { name = "Nick Swainston" },
     { name = "Bradley Meyers" },
 ]
