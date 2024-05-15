@@ -7,7 +7,7 @@ import numpy as np
 from mwa_source_finder import logger_setup
 
 
-def round_down(time: float, chunksize: float = 8.) -> float:
+def round_down(time: float, chunksize: float = 8.0) -> float:
     """Round the time down to the nearest multiple of the chunksize.
 
     Parameters
@@ -154,12 +154,28 @@ def find_best_obs_times_for_sources(
         # Check for source beam coverage in all observations
         for obsid in all_obs_metadata:
             if source in beam_coverage[obsid]:
-                _, _, _, source_power, _ = beam_coverage[obsid][source]
+                _, _, _, powers, times = beam_coverage[obsid][source]
+                obs_metadata = all_obs_metadata[obsid]
+
+                # Find the best start/stop times for the observation
+                start_t, stop_t, peak_time = plan_obs_times(
+                    obs_metadata,
+                    powers,
+                    times,
+                    obs_length=obs_length,
+                    logger=logger,
+                )
+
+                peak_power_segment = powers[
+                    np.where(times > start_t) and np.where(times < stop_t)
+                ]
+                mean_powers.append(np.mean(peak_power_segment))
                 obsids.append(obsid)
-                mean_powers.append(np.mean(source_power))
 
         if len(mean_powers) == 0:
-            logger.info(f"No obs IDs found for source {source}. Omitting from download plan.")
+            logger.info(
+                f"No obs IDs found for source {source}. Omitting from download plan."
+            )
             continue
 
         # Get beam coverage and metadata of best observation
