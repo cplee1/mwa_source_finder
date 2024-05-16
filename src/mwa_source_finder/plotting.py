@@ -52,25 +52,25 @@ def plot_power_vs_time(
     min_power: float,
     obs_for_source: bool = False,
     logger: logging.Logger = None,
-):
+) -> None:
     """Make a plot of power vs time showing each obs ID for a source.
 
     Parameters
     ----------
-    source_names : list
+    source_names : `list`
         A list of source names.
-    all_obs_metadata : dict
+    all_obs_metadata : `dict`
         A dictionary of metadata dictionaries.
-    beam_coverage : dict
+    beam_coverage : `dict`
         A dictionary of dictionaries organised by obs IDs then source names,
         with each source entry is a list containing the enter time, the exit
         time, and the maximum zenith-normalised power reached by the source in
         the beam, and an array of powers for each time step.
-    min_power : float
+    min_power : `float`
         The minimum power to count as in the beam.
-    obs_for_source : bool, optional
+    obs_for_source : `bool`, optional
         Whether to search for observations for each source, by default False.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
     """
     if logger is None:
@@ -197,29 +197,29 @@ def plot_beam_sky_map(
     min_power: float,
     norm_to_zenith: bool = True,
     logger: logging.Logger = None,
-):
-    """_summary_
+) -> None:
+    """Plot a figure showing the beam power and power vs time.
 
     Parameters
     ----------
-    obs_finder_result : list
+    obs_finder_result : `list`
         The finder result for a particular obs ID. A list of lists containing
         the source name as the first entry.
-    beam_coverage : dict
+    beam_coverage : `dict`
         A dictionary of dictionaries organised by obs IDs then source names,
         with each source entry is a list containing the enter time, the exit
         time, and the maximum zenith-normalised power reached by the source in
         the beam, and an array of powers for each time step.
-    obs_metadata : dict
+    obs_metadata : `dict`
         A dictionary of commonly used metadata.
-    pointings : dict
+    pointings : `dict`
         A dictionary of dictionaries containing pointing information, organised
         by source name.
-    min_power : float
+    min_power : `float`
         The minimum power to count as in the beam.
-    norm_to_zenith : bool, optional
+    norm_to_zenith : `bool`, optional
         Whether to normalise the powers to zenith, by default True.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
     """
     if logger is None:

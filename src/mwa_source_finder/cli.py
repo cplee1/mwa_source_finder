@@ -9,12 +9,12 @@ def load_items_from_file(filename: str) -> list:
 
     Parameters
     ----------
-    filename : str
+    filename : `str`
         The name of the file to read.
 
     Returns
     -------
-    list
+    valid_items : `list`
         A list of items stored as strings.
     """
     with open(filename, "r") as f:

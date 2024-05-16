@@ -20,12 +20,12 @@ def is_float(string: str) -> bool:
 
     Parameters
     ----------
-    string : str
+    string : `str`
         The string to check.
 
     Returns
     -------
-    bool
+    is_float : `bool`
         Whether the string is able to be converted to a float.
     """
     try:
@@ -40,12 +40,12 @@ def is_int(string: str) -> bool:
 
     Parameters
     ----------
-    string : str
+    string : `str`
         The string to check.
 
     Returns
     -------
-    bool
+    is_int : `bool`
         Whether the string is able to be converted to a float.
     """
     if string.isnumeric():
@@ -59,14 +59,14 @@ def is_sexigesimal(coord: str, mode: str) -> bool:
 
     Parameters
     ----------
-    coord : str
+    coord : `str`
         The sexigesimal coordinate to check.
-    mode : str
+    mode : `str`
         Either 'RA' for hours or 'DEC' for degrees.
 
     Returns
     -------
-    bool
+    is_sexigesimal : `bool`
         Whether the string is a valid sexigesimal coordinate.
     """
     if mode == "RA":
@@ -102,16 +102,16 @@ def format_sexigesimal(
 
     Parameters
     ----------
-    coord : str
+    coord : `str`
         The sexigesimal coordinate to format.
-    add_sign : bool, optional
+    add_sign : `bool`, optional
         Add a sign to the output, by default False.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
     Returns
     -------
-    str
+    formatted_coord : `str`
         The properly formatted coordinate.
     """
     if logger is None:
@@ -157,20 +157,17 @@ def decimal_to_sexigesimal(rajd: float, decjd: float) -> Tuple[str, str]:
 
     Parameters
     ----------
-    rajd : float
+    rajd : `float`
         The right acension in decimal degrees.
-    decjd : float
+    decjd : `float`
         The declination in decimal degrees.
 
     Returns
     -------
-    Tuple[str, str]
-        A tuple containing the following:
-
-            raj : str
-                The right ascension in sexigesimal format. E.g. "HH:MM:SS.SSSS".
-            decj : str
-                The declination in sexigesimal format. E.g. "DD:MM:SS.SSSS".
+    raj : `str`
+        The right ascension in sexigesimal format. E.g. "HH:MM:SS.SSSS".
+    decj : `str`
+        The declination in sexigesimal format. E.g. "DD:MM:SS.SSSS".
     """
     c = SkyCoord(rajd, decjd, frame="icrs", unit=(u.deg, u.deg))
     raj = c.ra.to_string(unit=u.hour, sep=":")
@@ -183,20 +180,17 @@ def sexigesimal_to_decimal(raj: str, decj: str) -> Tuple[float, float]:
 
     Parameters
     ----------
-    raj : str
+    raj : `str`
         The right acension in sexigesimal format. E.g. "HH:MM:SS.SSSS".
-    decj : str
+    decj : `str`
         The declination in sexigesimal format. E.g. "DD:MM:SS.SSSS".
 
     Returns
     -------
-    Tuple[str, str]
-        A tuple containing the following:
-
-            rajd : str
-                The right ascension in decimal degrees.
-            decj : str
-                The declination in decimal degrees.
+    rajd : `str`
+        The right ascension in decimal degrees.
+    decj : `str`
+        The declination in decimal degrees.
     """
     c = SkyCoord(raj, decj, frame="icrs", unit=(u.hourangle, u.deg))
     rajd = c.ra.deg
@@ -213,24 +207,21 @@ def equatorial_to_horizontal(
 
     Parameters
     ----------
-    rajd : Union[float, np.ndarray]
+    rajd : Union[`float`, `np.ndarray`]
         The right acension(s) in decimal degrees.
-    decjd : Union[float, np.ndarray]
+    decjd : Union[`float`, `np.ndarray`]
         The declination(s) in decimal degrees.
-    gps_epoch : float
+    gps_epoch : `float`
         The GPS time to evaluate the horizontal coordinates.
 
     Returns
     -------
-    Tuple[ Union[float, np.ndarray], Union[float, np.ndarray], Union[float, np.ndarray] ]
-        A tuple containing the following:
-
-            alt : Union[float, np.ndarray]
-                The altitude angle(s) in degrees.
-            az : Union[float, np.ndarray]
-                The azimuth angle(s) in degrees.
-            za : Union[float, np.ndarray]
-                The zenith angle(s) in degrees.
+    alt : Union[`float`, `np.ndarray`]
+        The altitude angle(s) in degrees.
+    az : Union[`float`, `np.ndarray`]
+        The azimuth angle(s) in degrees.
+    za : Union[`float`, `np.ndarray`]
+        The zenith angle(s) in degrees.
     """
 
     eq_pos = SkyCoord(rajd, decjd, unit=(u.deg, u.deg))
@@ -249,26 +240,23 @@ def get_pulsar_coords(
 
     Parameters
     ----------
-    pulsar : str
+    pulsar : `str`
         Pulsar J-name or B-name.
-    query : psrqpy.QueryATNF
+    query : `psrqpy.QueryATNF`
         A psrqpy Query object.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
     Returns
     -------
-    Tuple[str, str, float, float]
-        A tuple containing the following:
-
-            raj : str
-                The J2000 right ascension in sexigesimal format.
-            decj : str
-                The J2000 declination in sexigesimal format.
-            rajd : float
-                The J2000 right ascension in decimal degrees.
-            decjd : float
-                The J2000 declination in decimal degrees.
+    raj : `str`
+        The J2000 right ascension in sexigesimal format.
+    decj : `str`
+        The J2000 declination in sexigesimal format.
+    rajd : `float`
+        The J2000 right ascension in decimal degrees.
+    decjd : `float`
+        The J2000 declination in decimal degrees.
     """
     if logger is None:
         logger = logger_setup.get_logger()
@@ -301,24 +289,21 @@ def interpret_coords(
 
     Parameters
     ----------
-    coords : str
+    coords : `str`
         Coordinates in <RA>_<DEC> format, either sexigesimal or decimal.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
     Returns
     -------
-    Tuple[str, str, float, float]
-        A tuple containing the following:
-
-            raj : str
-                The J2000 right ascension in sexigesimal format.
-            decj : str
-                The J2000 declination in sexigesimal format.
-            rajd : float
-                The J2000 right ascension in decimal degrees.
-            decjd : float
-                The J2000 declination in decimal degrees.
+    raj : `str`
+        The J2000 right ascension in sexigesimal format.
+    decj : `str`
+        The J2000 declination in sexigesimal format.
+    rajd : `float`
+        The J2000 right ascension in decimal degrees.
+    decjd : `float`
+        The J2000 declination in decimal degrees.
     """
     if logger is None:
         logger = logger_setup.get_logger()
@@ -359,19 +344,19 @@ def interpret_coords(
     return raj, decj, rajd, decjd
 
 
-def get_pointings(sources: list, logger: logging.Logger = None) -> list:
+def get_pointings(sources: list, logger: logging.Logger = None) -> dict:
     """Get source pointing information and store it in dictionary format.
 
     Parameters
     ----------
-    sources : list
+    sources : `list`
         A list of source names.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
     Returns
     -------
-    dict
+    pointings : `dict`
         A dictionary of dictionaries containing pointing information, organised
         by source name.
     """
@@ -409,17 +394,17 @@ def get_pointings(sources: list, logger: logging.Logger = None) -> list:
     return pointings
 
 
-def get_atnf_pulsars(logger: logging.Logger = None) -> list:
+def get_atnf_pulsars(logger: logging.Logger = None) -> dict:
     """Get source pointing information from the ATNF pulsar catalogue.
 
     Parameters
     ----------
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
     Returns
     -------
-    dict
+    pointings : `dict`
         A dictionary of dictionaries containing pointing information, organised
         by source name.
     """

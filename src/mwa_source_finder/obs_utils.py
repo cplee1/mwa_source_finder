@@ -22,28 +22,28 @@ def get_metadata(
 
     Parameters
     ----------
-    servicetype : str, optional
+    servicetype : `str`, optional
         Either the 'observation' which makes human readable html pages or
         'metadata' which returns data, by default 'metadata'.
-    service : str, optional
+    service : `str`, optional
         The meta data service out of ['obs', 'find', 'con'], by default 'obs'.
             obs: Returns details about a single observation.
             find: Search the database for observations that satisfy given criteria.
             con: Finds the configuration information for an observation.
-    params : dict, optional
+    params : `dict`, optional
         A dictionary of the options to use in the metadata call which is dependent
         on the service, by default None.
-    retries : int, optional
+    retries : `int`, optional
         The number of times to retry timeout errors, by default 3.
-    retry_http_error : bool, optional
+    retry_http_error : `bool`, optional
         Whether to retry the request after a HTTP error, by default False.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
     Returns
     -------
-    dict
-        The result for that service.
+    result : `dict`
+        The result for that service, interpreted as a json and stored as a dict.
     """
     # Append the service name to this base URL, eg 'con', 'obs', etc.
     BASEURL = "http://ws.mwatelescope.org/"
@@ -96,16 +96,16 @@ def get_common_metadata(
 
     Parameters
     ----------
-    obsid : int
+    obsid : `int`
         The observation ID.
-    filter_available : bool, optional
+    filter_available : `bool`, optional
         Only search observations with data files available, by default False.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
     Returns
     -------
-    dict
+    common_metadata : `dict`
         A dictionary of commonly used metadata.
     """
     if logger is None:
@@ -181,14 +181,14 @@ def get_all_obsids(pagesize: int = 50, logger: logging.Logger = None) -> list:
 
     Parameters
     ----------
-    pagesize : int
+    pagesize : `int`
         Size of the page to query at a time.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
     Returns
     -------
-    obsids : list
+    obsids : `list`
         A list of the MWA observation IDs.
     """
     if logger is None:

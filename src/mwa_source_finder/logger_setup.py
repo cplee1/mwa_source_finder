@@ -6,7 +6,7 @@ def get_log_levels() -> dict:
 
     Returns
     -------
-    dict
+    log_levels : `dict`
         A dictionary containing all available logging levels.
     """
     return dict(
@@ -18,24 +18,24 @@ def get_log_levels() -> dict:
     )
 
 
-def get_logger(loglvl: int = logging.INFO) -> logging.Logger:
+def get_logger(log_level: int = logging.INFO) -> logging.Logger:
     """Initialise a custom logger.
 
     Parameters
     ----------
-    loglvl : int, optional
+    loglvl : `int`, optional
         The logging level, by default logging.INFO.
 
     Returns
     -------
-    logging.Logger
+    logger : `logging.Logger`
         A customised logger object.
     """
     logger = logging.getLogger(__name__)
     formatter = logging.Formatter("%(asctime)s %(levelname)-9s :: %(message)s")
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)
-    logger.setLevel(loglvl)
+    logger.setLevel(log_level)
     logger.addHandler(handler)
     logger.propagate = False
     return logger

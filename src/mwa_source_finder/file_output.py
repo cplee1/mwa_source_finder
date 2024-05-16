@@ -14,22 +14,22 @@ def write_output_source_files(
     min_power: float,
     obs_plan: dict = None,
     logger: logging.Logger = None,
-):
+) -> None:
     """Write finder results for each source.
 
     Parameters
     ----------
-    finder_result : dict
+    finder_result : `dict`
         A dictionary containing the results organised by source.
-    obs_metadata_dict : dict
+    obs_metadata_dict : `dict`
         A dictionary of observation metadata dictionaries.
-    freq_mode: str
+    freq_mode : `str`
         The frequency mode used ['low', 'centre', 'high'].
-    norm_mode: str
+    norm_mode : `str`
         The beam normalisation mode used ['zenith', 'beam'].
-    min_power : float, optional
+    min_power : `float`, optional
         The minimum power to count as in the beam.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
     """
     if logger is None:
@@ -114,24 +114,24 @@ def write_output_obs_files(
     norm_mode: str,
     min_power: float,
     logger: logging.Logger = None,
-):
+) -> None:
     """Write finder results for each observation.
 
     Parameters
     ----------
-    finder_result : dict
+    finder_result : `dict`
         A dictionary containing the results organised by observation ID.
-    obs_metadata_dict : dict
+    obs_metadata_dict : `dict`
         A dictionary of observation metadata dictionaries.
-    t_start: float
+    t_start : `float`
         Start time of the search, as a fraction of the full observation.
-    t_end: float
+    t_end : `float`
         End time of the search, as a fraction of the full observation.
-    norm_mode: str
+    norm_mode : `str`
         The beam normalisation mode used ['zenith', 'beam'].
-    min_power : float, optional
+    min_power : `float`, optional
         The minimum power to count as in the beam.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
     """
     if logger is None:
@@ -197,7 +197,22 @@ def write_output_obs_files(
             f.writelines(lines)
 
 
-def invert_finder_results(finder_results, obs_for_source=True):
+def invert_finder_results(finder_results: dict, obs_for_source: bool = True) -> dict:
+    """Invert the finder_results dictonary so that the heirarchy of obs IDs and
+    source names are swapped.
+
+    Parameters
+    ----------
+    finder_results : `dict`
+        A dictionary containing the finder results.
+    obs_for_source : `bool`, optional
+        If true, then the assumed heirarchy is (source, obsid), by default True.
+
+    Returns
+    -------
+    new_finder_results : `dict`
+        A dictionary containing the inverted finder results.
+    """
     new_finder_results = dict()
 
     if obs_for_source:

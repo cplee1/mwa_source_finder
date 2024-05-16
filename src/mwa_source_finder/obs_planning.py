@@ -12,14 +12,14 @@ def round_down(time: float, chunksize: float = 8.0) -> float:
 
     Parameters
     ----------
-    time : float
+    time : `float`
         The time to round.
-    chunksize : float, optional
+    chunksize : `float`, optional
         The multiple to round to, in the same units as the time, by default 8.
 
     Returns
     -------
-    float
+    time : `float`
         The rounded time.
     """
     return time - (time % chunksize)
@@ -37,28 +37,25 @@ def plan_obs_times(
 
     Parameters
     ----------
-    obs_metadata : dict
+    obs_metadata : `dict`
         A dictionary of commonly used metadata.
-    power : np.ndarray
+    power : `np.ndarray`
         The source powers.
-    times : np.ndarray
+    times : `np.ndarray`
         The times of the powers from the start of the observation, in seconds.
-    obs_length : float
+    obs_length : `float`
         The desired observation length, in seconds.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
     Returns
     -------
-    Tuple[float, float]
-        A tuple containing the following:
-
-            start_t : float
-                The start time of the optimal observation, in seconds.
-            stop_t : float
-                The stop time of the optimal observation, in seconds.
-            peak_time float
-                The time of the peak power in the beam, in seconds.
+    start_t : `float`
+        The start time of the optimal observation, in seconds.
+    stop_t : `float`
+        The stop time of the optimal observation, in seconds.
+    peak_time : `float`
+        The time of the peak power in the beam, in seconds.
     """
     if logger is None:
         logger = logger_setup.get_logger()
@@ -119,23 +116,23 @@ def find_best_obs_times_for_sources(
 
     Parameters
     ----------
-    source_names : list
+    source_names : `list`
         A list of source names.
-    all_obs_metadata : dict
+    all_obs_metadata : `dict`
         A dictionary of metadata dictionaries.
-    beam_coverage : dict
+    beam_coverage : `dict`
         A dictionary of dictionaries organised by obs IDs then source names,
         with each source entry is a list containing the enter time, the exit
         time, and the maximum zenith-normalised power reached by the source in
         the beam, and an array of powers for each time step.
-    obs_length : float
+    obs_length : `float`
         The desired observation length, in seconds.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
     Returns
     -------
-    dict
+    obs_plan : `dict`
         A dictionary organised by source name, with each entry being a
         dictionary containing the obs ID, peak time, best start time, and best
         stop time, of the best observation.
@@ -210,18 +207,18 @@ def plan_data_download(
 
     Parameters
     ----------
-    obs_plan : dict
+    obs_plan : `dict`
         A dictionary organised by source name, with each entry being a
         dictionary containing the obs ID, peak time, best start time, and best
         stop time, of the best observation.
-    savename : str, optional
+    savename : `str`, optional
         The name of the output csv file, by default None.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
     Returns
     -------
-    list
+    download_plans : `list`
         A list of tuples, each containing the obs ID, start time of the
         download, stop time of the download, and the sources within the
         downloaded data.
@@ -274,17 +271,17 @@ def find_contiguous_ranges(sources: list, min_gap: float) -> list:
 
     Parameters
     ----------
-    sources : list
+    sources : `list`
         A list of tuples, each containing the source name, the start of the
         time interval, and the end of the time interval.
-    min_gap : float
+    min_gap : `float`
         The minimum gap between two intervals to count them as non-contiguous.
         This is to ensure that downloads are separated enough to be worth
         splitting up.
 
     Returns
     -------
-    list
+    contig_ranges : `list`
         A list of tuples, each containing the start time of the contiguous
         time interval, the end time of the contiguous time interval, and the
         names of the sources within that interval.
