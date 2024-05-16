@@ -114,6 +114,11 @@ def main():
         help="Only search observations with data files available. "
         + "This will increase the time taken to obtain the metadata.",
     )
+    obs_args.add_argument(
+        "--no_cache",
+        action="store_true",
+        help="Do not read or write to the metadata cache.",
+    )
 
     # Functionality arguments
     finder_args = parser.add_argument_group(
@@ -291,6 +296,7 @@ def main():
         norm_mode=norm_mode,
         min_power=args.min_power,
         freq_mode=args.freq_mode,
+        no_cache=args.no_cache,
         logger=logger,
     )
 

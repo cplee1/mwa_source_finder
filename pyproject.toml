@@ -18,8 +18,10 @@ dependencies = [
     "numpy >= 1.17.0",
     "matplotlib >= 3.5",
     "astropy",
+    "pyyaml",
     "psrqpy >= 1.2.7",
     "mwa-hyperbeam",
+    "tqdm",
     "ruff",
 ]
 dynamic = ["version"]

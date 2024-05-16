@@ -1,7 +1,11 @@
 import json
 import logging
+import os
 import time
 import urllib
+from typing import Optional
+
+import yaml
 
 from mwa_source_finder import logger_setup
 
@@ -213,3 +217,53 @@ def get_all_obsids(pagesize: int = 50, logger: logging.Logger = None) -> list:
                 temp = []
             page += 1
     return obsids
+
+
+def check_obsid_cache(dir: str = None, root: str = "sf_obsid_cache") -> Optional[str]:
+    """Find the most recent obs ID cache file in a directory.
+
+    Parameters
+    ----------
+    dir : `str`, optional
+        The directory to search, by default the current directory
+    root : `str`, optional
+        The cache filename without the extension, by default "sf_obsid_cache"
+
+    Returns
+    -------
+    fn_path : `str`
+        The file path of the most recent cache file in the directory.
+    """
+    if dir is None:
+        dir = os.getcwd()
+    cache_files = []
+    for fn in os.listdir(dir):
+        fn_path = os.path.join(dir, fn)
+        fn_root = os.path.splitext(fn)[0]  # Remove the extension
+        if fn_root == root and os.path.isfile(fn_path):
+            # Valid cache file found
+            cache_files.append(fn)
+    if len(cache_files) > 0:
+        cache_files.sort(reverse=True)
+        fn_path = os.path.join(dir, cache_files[0])  # Most recent cache file
+        return fn_path
+    else:
+        return None
+
+
+def save_as_yaml(data_dict: dict, dir: str = None, root: str = "sf_obsid_cache") -> None:
+    """Save a dictionary as a yaml file.
+
+    Parameters
+    ----------
+    data_dict : `dict`
+        A dictionary to save.
+    dir : `str`, optional
+        The path to save the file to, by default the current directory.
+    root : `str`, optional
+        The filename without the extension, by default "sf_obsid_cache"
+    """
+    if dir is None:
+        dir = os.getcwd()
+    with open(os.path.join(dir, f"{root}.yaml"), "w") as yamlfile:
+        yaml.dump(data_dict, yamlfile)

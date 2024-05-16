@@ -2,6 +2,9 @@ import logging
 import sys
 from typing import Tuple
 
+import yaml
+from tqdm import tqdm
+
 from mwa_source_finder import beam_utils, coord_utils, logger_setup, obs_utils
 
 
@@ -16,6 +19,7 @@ def find_sources_in_obs(
     norm_mode: str = "zenith",
     min_power: float = 0.3,
     freq_mode: str = "centre",
+    no_cache: bool = False,
     logger: logging.Logger = None,
 ) -> Tuple[dict, dict]:
     """Find sources above a given power level in the MWA tile beam for a given
@@ -44,6 +48,8 @@ def find_sources_in_obs(
     freq_mode : `str`, optional
         The frequency to use to compute the beam power ['low', 'centre', 'high'],
         by default 'centre'.
+    no_cache : `bool`, optional
+        Do not read or write to the metadata cache, by default False.
     logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
@@ -88,8 +94,8 @@ def find_sources_in_obs(
     else:
         logger.info("Collecting pulsars from the ATNF catalogue...")
         pointings = coord_utils.get_atnf_pulsars(logger=logger)
-        logger.info(f"{len(pointings)} pulsar pointings parsed from the catalogue")
-
+        logger.info(f"{len(pointings)} pulsar pointings parsed from the catalogue")  
+    
     if obsids is not None:
         # Get obs IDs from command line
         valid_obsids = []
@@ -98,22 +104,46 @@ def find_sources_in_obs(
                 logger.error(f"Invalid obs ID provided: {obsid}")
                 continue
             valid_obsids.append(obsid)
-        # Print out a full list of observations
-        logger.info(f"Obs IDs: {obsids}")
+        logger.info(f"{len(obsids)} obs IDs parsed from user")
+        logger.debug(f"Obs IDs: {obsids}")
     else:
+        # Get all obs IDs
         logger.info("Obtaining a list of all obs IDs...")
         obsids = obs_utils.get_all_obsids(logger=logger)
-        logger.info(f"{len(obsids)} observations found")
+        logger.info(f"{len(obsids)} obs IDs found in MWA archive")
 
     all_obs_metadata = dict()
-    logger.info("Obtaining metadata for observations...")
-    for obsid in obsids:
-        logger.debug(f"Obtaining metadata for obs ID: {obsid}")
-        obs_metadata_tmp = obs_utils.get_common_metadata(
-            obsid, filter_available, logger
-        )
-        if obs_metadata_tmp is not None:
-            all_obs_metadata[obsid] = obs_metadata_tmp
+    obsids_to_query = obsids
+    if not no_cache:
+        # Check if the obs ID metadata has been cached
+        cache_file = obs_utils.check_obsid_cache()
+        if cache_file is not None:
+            with open(cache_file, "r") as yamlfile:
+                all_obs_metadata = yaml.safe_load(yamlfile)
+            obsids_to_query = []
+            for req_obsid in obsids:
+                req_obsid_found = False
+                for cached_obsid in all_obs_metadata.keys():
+                    if cached_obsid == req_obsid:
+                        req_obsid_found = True
+                        break
+                if not req_obsid_found:
+                    obsids_to_query.append(req_obsid)
+            logger.info(f"{len(obsids) - len(obsids_to_query)} obs IDs loaded from cache file: {cache_file}")
+            
+    # Only query the obs IDs which aren't in the cache
+    if len(obsids_to_query) > 0:
+        logger.info("Obtaining metadata for observations...")
+        for obsid in tqdm(obsids_to_query, unit="obsid"):
+            obs_metadata_tmp = obs_utils.get_common_metadata(
+                obsid, filter_available, logger
+            )
+            if obs_metadata_tmp is not None:
+                all_obs_metadata[obsid] = obs_metadata_tmp
+        if not no_cache:
+            # Update the cache file
+            obs_utils.save_as_yaml(all_obs_metadata)
+    
     obsids = all_obs_metadata.keys()
 
     if len(obsids) == 0:
