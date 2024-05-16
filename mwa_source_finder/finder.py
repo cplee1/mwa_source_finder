@@ -96,7 +96,7 @@ def find_sources_in_obs(
         # Get obs IDs from command line
         valid_obsids = []
         for obsid in obsids:
-            if len(str(obsid)) != 10:
+            if len(obsid) != 10:
                 logger.error(f"Invalid obs ID provided: {obsid}")
                 continue
             valid_obsids.append(obsid)
