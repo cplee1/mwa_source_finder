@@ -2,6 +2,7 @@
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
+
 [project]
 name = "mwa_source_finder"
 authors = [
@@ -18,12 +19,48 @@ dependencies = [
     "matplotlib >= 3.5",
     "astropy",
     "psrqpy >= 1.2.7",
-    "mwa-hyperbeam"
+    "mwa-hyperbeam",
+    "ruff",
 ]
 dynamic = ["version"]
+
 
 [project.scripts]
 source-finder = "mwa_source_finder.cli:main"
 
+
 [tool.setuptools.dynamic]
 version = { attr = "mwa_source_finder.__version__" }
+
+
+[tool.ruff]
+include = [
+    "pyproject.toml",
+    "src/*/*.py",
+]
+line-length = 120
+indent-width = 4
+
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # flake8-bugbear
+    "B",
+    # isort
+    "I",
+]
+
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"

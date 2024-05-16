@@ -2,7 +2,7 @@ import logging
 import sys
 from typing import Tuple
 
-from mwa_source_finder import logger_setup, obs_utils, coord_utils, beam_utils
+from mwa_source_finder import beam_utils, coord_utils, logger_setup, obs_utils
 
 
 def find_sources_in_obs(

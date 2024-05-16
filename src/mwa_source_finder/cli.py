@@ -1,7 +1,7 @@
-import sys
 import argparse
+import sys
 
-from mwa_source_finder import logger_setup, finder, file_output, plotting, obs_planning
+from mwa_source_finder import file_output, finder, logger_setup, obs_planning, plotting
 
 
 def load_items_from_file(filename: str) -> list:

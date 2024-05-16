@@ -1,6 +1,6 @@
+import json
 import logging
 import time
-import json
 import urllib
 
 from mwa_source_finder import logger_setup

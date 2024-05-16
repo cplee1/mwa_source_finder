@@ -3,11 +3,11 @@ import os
 import sys
 from typing import Tuple
 
+import mwa_hyperbeam
 import numpy as np
 from scipy import interpolate
-import mwa_hyperbeam
 
-from mwa_source_finder import logger_setup, coord_utils
+from mwa_source_finder import coord_utils, logger_setup
 
 
 def compute_beam_power_array(

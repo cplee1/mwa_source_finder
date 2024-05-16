@@ -1,6 +1,6 @@
+import csv
 import logging
 from typing import Tuple
-import csv
 
 import numpy as np
 

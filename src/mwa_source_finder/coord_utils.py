@@ -1,11 +1,11 @@
 import logging
-from typing import Optional, Union, Tuple
+from typing import Optional, Tuple, Union
 
 import numpy as np
-from astropy.coordinates import SkyCoord, AltAz, EarthLocation
-from astropy.time import Time
-from astropy import units as u
 import psrqpy
+from astropy import units as u
+from astropy.coordinates import AltAz, EarthLocation, SkyCoord
+from astropy.time import Time
 
 from mwa_source_finder import logger_setup
 

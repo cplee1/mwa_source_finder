@@ -1,14 +1,14 @@
 import logging
 
-import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
-from astropy.coordinates import SkyCoord, AltAz
-from astropy.time import Time
 import astropy.units as u
+import matplotlib as mpl
+import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
+import numpy as np
+from astropy.coordinates import AltAz, SkyCoord
+from astropy.time import Time
 
-from mwa_source_finder import logger_setup, coord_utils, beam_utils
+from mwa_source_finder import beam_utils, coord_utils, logger_setup
 
 plt.rcParams["mathtext.fontset"] = "dejavuserif"
 plt.rcParams["font.family"] = "serif"
