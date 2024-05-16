@@ -18,59 +18,57 @@ def find_sources_in_obs(
     freq_mode: str = "centre",
     logger: logging.Logger = None,
 ) -> Tuple[dict, dict]:
-    """Find sources in observations.
+    """Find sources above a given power level in the MWA tile beam for a given
+    observation.
 
     Parameters
     ----------
-    sources : list
+    sources : `list`
         A list of sources.
-    obsids : list
+    obsids : `list`
         A list of obs IDs.
-    t_start : float
+    t_start : `float`
         The start time to search, as a fraction of the full observation.
-    t_end : float
+    t_end : `float`
         The end time to search, as a fraction of the full observation.
-    obs_for_source : bool, optional
+    obs_for_source : `bool`, optional
         Whether to search for observations for each source, by default False.
-    filter_available : bool, optional
+    filter_available : `bool`, optional
         Only search observations with data files available, by default False.
-    input_dt : float, optional
+    input_dt : `float`, optional
         The input step size in time (may be reduced), by default 60.
-    norm_mode : str, optional
+    norm_mode : `str`, optional
         The normalisation mode ['zenith', 'beam'], by default 'zenith'.
-    min_power : float, optional
+    min_power : `float`, optional
         The minimum normalised power to count as in the beam, by default 0.3.
-    freq_mode : str, optional
+    freq_mode : `str`, optional
         The frequency to use to compute the beam power ['low', 'centre', 'high'],
         by default 'centre'.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
     Returns
     -------
-    Tuple[dict, dict]
-        A tuple containing the following:
+    finder_results : `dict`
+        A dictionary where each item [obsid/source] is a list of lists.
+        The lists contain the obs ID/source name, the enter time, the
+        exit time, and the maximum zenith-normalised power reached by
+        the source in the beam.
 
-            finder_results : dict
-                A dictionary where each item [obsid/source] is a list of lists.
-                The lists contain the obs ID/source name, the enter time, the
-                exit time, and the maximum zenith-normalised power reached by
-                the source in the beam.
+    beam_coverage: `dict`
+        A dictionary of dictionaries organised by obs IDs then source
+        names, with each source entry is a list containing the enter
+        time, the exit time, and the maximum zenith-normalised power
+        reached by the source in the beam, and an array of powers for
+        each time step.
 
-            beam_coverage: dict
-                A dictionary of dictionaries organised by obs IDs then source
-                names, with each source entry is a list containing the enter
-                time, the exit time, and the maximum zenith-normalised power
-                reached by the source in the beam, and an array of powers for
-                each time step.
+    all_obs_metadata : `dict`
+        A dictionary of dictionaries containing common metadata for each
+        observation, organised by obs ID.
 
-            all_obs_metadata : dict
-                A dictionary of dictionaries containing common metadata for each
-                observation, organised by obs ID.
-
-            pointings : dict
-                A dictionary of dictionaries containing pointing information,
-                organised by source name.
+    pointings : `dict`
+        A dictionary of dictionaries containing pointing information,
+        organised by source name.
     """
     if logger is None:
         logger = logger_setup.get_logger()
