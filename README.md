@@ -2,16 +2,24 @@
 Code to find sources in MWA VCS observations.
 
 ## Installation
-To install, clone the repository and navigate to the source code directory, then run
+This package can be installed into your working environment using `pip` with
+the follwing command:
 
-    pip install --upgrade pip
-    pip install .
+    pip install git+https://github.com/cplee1/mwa_source_finder.git
 
-`mwa_hyperbeam` requires the MWA FEE HDF5 file, which can be obtained with
+Alternatively, you can install the code from source by cloning the repository and
+running
+
+    pip install <source_directory>
+
+Where `<source_directory>` is the directory containing the `pyproject.toml` file.
+
+This code uses `mwa_hyperbeam`, which requires the MWA FEE HDF5 file. This file
+can be obtained as follows:
 
     wget http://ws.mwatelescope.org/static/mwa_full_embedded_element_pattern.h5
 
-Then define the environment variable `MWA_BEAM_FILE` as the location of this file, e.g.
+Then export the environment variable `MWA_BEAM_FILE` as the location of this file:
 
     export MWA_BEAM_FILE=/path/to/mwa_full_embedded_element_pattern.h5
 
@@ -34,4 +42,7 @@ where the `-s` option accepts pointings as either pulsar names or `RA_DEC` coord
 
 The `--filter_available` option can be used in obs-for-source mode to only search
 observations which have data available in the MWA archive. This additional step will
-increase the execution time as it requires additional metadata checks.
+increase the execution time as it requires additional metadata checks. By default,
+the code will generate a cache file on first execution to save the observation
+metadata for later use. This will save time on subsequent executions in obs-for-source
+mode. The cache can be disabled with `--no_cache`.
