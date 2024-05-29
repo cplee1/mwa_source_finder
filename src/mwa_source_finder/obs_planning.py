@@ -163,16 +163,12 @@ def find_best_obs_times_for_sources(
                     logger=logger,
                 )
 
-                peak_power_segment = powers[
-                    np.where(times > start_t) and np.where(times < stop_t)
-                ]
+                peak_power_segment = powers[np.where(times > start_t) and np.where(times < stop_t)]
                 mean_powers.append(np.mean(peak_power_segment))
                 obsids.append(obsid)
 
         if len(mean_powers) == 0:
-            logger.info(
-                f"No obs IDs found for source {source}. Omitting from download plan."
-            )
+            logger.info(f"No obs IDs found for source {source}. Omitting from download plan.")
             continue
 
         # Get beam coverage and metadata of best observation

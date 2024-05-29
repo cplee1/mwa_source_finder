@@ -38,9 +38,7 @@ def main():
 
     # Program arguments
     optional = parser.add_argument_group("Program arguments")
-    optional.add_argument(
-        "-h", "--help", action="help", help="Show this help information and exit."
-    )
+    optional.add_argument("-h", "--help", action="help", help="Show this help information and exit.")
     optional.add_argument(
         "-L",
         "--loglvl",
@@ -78,8 +76,7 @@ def main():
     # Observation arguments
     obs_args = parser.add_argument_group(
         "Observation arguments",
-        "Options to specify the observation(s) to search. The default is all VCS "
-        + "observations.",
+        "Options to specify the observation(s) to search. The default is all VCS " + "observations.",
     )
     obs_args.add_argument(
         "-o",
@@ -93,8 +90,7 @@ def main():
         "--obsids_file",
         type=str,
         default=None,
-        help="A file containing a list of obs IDs to search. Each obs ID should be "
-        + "listed on a new line.",
+        help="A file containing a list of obs IDs to search. Each obs ID should be " + "listed on a new line.",
     )
     obs_args.add_argument(
         "--start",
@@ -135,9 +131,7 @@ def main():
         action="store_true",
         help="Force a search for sources in all obs IDs.",
     )
-    finder_args.add_argument(
-        "--dt", type=float, default=60, help="Step size in time for beam modelling."
-    )
+    finder_args.add_argument("--dt", type=float, default=60, help="Step size in time for beam modelling.")
     finder_args.add_argument(
         "--min_power",
         type=float,
@@ -172,8 +166,7 @@ def main():
     out_args.add_argument(
         "--beam_plot",
         action="store_true",
-        help="Make a plot of the source path through the beam for each obs ID/source "
-        + "combination.",
+        help="Make a plot of the source path through the beam for each obs ID/source " + "combination.",
     )
     out_args.add_argument(
         "--time_plot",
@@ -214,8 +207,7 @@ def main():
     ):
         logger.error("No sources or observations specified.")
         logger.error(
-            "If you would like to search for all sources in all obs IDs, "
-            + "use the --source_for_all_obs option."
+            "If you would like to search for all sources in all obs IDs, " + "use the --source_for_all_obs option."
         )
         sys.exit(1)
 
@@ -228,16 +220,10 @@ def main():
     #     logger.error("'beam' normalisation mode is not yet implemented.")
     #     sys.exit(1)
 
-    if (
-        args.obsids is None
-        and args.obsids_file is None
-        and not args.obs_for_source
-        and not args.source_for_all_obs
-    ):
+    if args.obsids is None and args.obsids_file is None and not args.obs_for_source and not args.source_for_all_obs:
         logger.error("No obs IDs specified while in source-for-obs mode.")
         logger.error(
-            "If you would like to search for sources in all obs IDs, "
-            + "use the --source_for_all_obs option."
+            "If you would like to search for sources in all obs IDs, " + "use the --source_for_all_obs option."
         )
         sys.exit(1)
 
@@ -246,12 +232,10 @@ def main():
         sys.exit(1)
 
     if not args.obs_for_source and args.plan_obs_length:
-        logger.warning("The --plan_obs_length option will do nothing in "
-                       + "source-for-obs mode.")
-        
+        logger.warning("The --plan_obs_length option will do nothing in " + "source-for-obs mode.")
+
     if not args.obs_for_source and args.download_plan:
-        logger.warning("The --download_plan option will do nothing in "
-                       + "source-for-obs mode.")
+        logger.warning("The --download_plan option will do nothing in " + "source-for-obs mode.")
 
     # Get sources from command line, if specified
     if args.sources or args.sources_file:
@@ -311,9 +295,7 @@ def main():
             )
 
             if args.download_plan:
-                obs_planning.plan_data_download(
-                    obs_plan, savename="download_plan.csv", logger=logger
-                )
+                obs_planning.plan_data_download(obs_plan, savename="download_plan.csv", logger=logger)
         else:
             obs_plan = None
 

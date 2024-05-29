@@ -60,15 +60,9 @@ def get_metadata(
     for _ in range(0, retries):
         err = False
         try:
-            result = json.load(
-                urllib.request.urlopen(
-                    BASEURL + servicetype + "/" + service + "?" + data
-                )
-            )
+            result = json.load(urllib.request.urlopen(BASEURL + servicetype + "/" + service + "?" + data))
         except urllib.error.HTTPError as err:
-            logger.error(
-                f"HTTP error from server: code={err.code}, response: {err.read()}"
-            )
+            logger.error(f"HTTP error from server: code={err.code}, response: {err.read()}")
             if retry_http_error:
                 logger.error(f"Waiting {wait_time} seconds and trying again")
                 time.sleep(wait_time)
@@ -89,9 +83,7 @@ def get_metadata(
     return result
 
 
-def get_common_metadata(
-    obsid: int, filter_available: bool = False, logger: logging.Logger = None
-) -> dict:
+def get_common_metadata(obsid: int, filter_available: bool = False, logger: logging.Logger = None) -> dict:
     """Get observation metadata and extract some commonly used data.
 
     Parameters
@@ -206,9 +198,7 @@ def get_all_obsids(pagesize: int = 50, logger: logging.Logger = None) -> list:
         while len(temp) == pagesize or page == 1:
             params["page"] = page
             logger.debug(f"Page: {page}  params: {params}")
-            temp = get_metadata(
-                service="find", params=params, retry_http_error=True, logger=logger
-            )
+            temp = get_metadata(service="find", params=params, retry_http_error=True, logger=logger)
             # If there are no obs in the field (which is rare), None is returned
             if temp is not None:
                 for row in temp:

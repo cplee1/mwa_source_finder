@@ -1,19 +1,15 @@
-[build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
-
-
 [project]
 name = "mwa_source_finder"
+version = "0.1.3"
+description = "Find sources in MWA observations."
 authors = [
     { name = "Christopher Lee", email = "christopher.lee@icrar.org" },
     { name = "Nick Swainston" },
     { name = "Bradley Meyers" },
 ]
-description = "Find sources in MWA observations."
-requires-python = ">= 3.7"
 license = { file = "LICENSE" }
 readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">= 3.7"
 dependencies = [
     "numpy >= 1.17.0",
     "matplotlib >= 3.5",
@@ -24,25 +20,22 @@ dependencies = [
     "tqdm",
     "ruff",
 ]
-dynamic = ["version"]
-
 
 [project.scripts]
 source-finder = "mwa_source_finder.cli:main"
 
-
-[tool.setuptools.dynamic]
-version = { attr = "mwa_source_finder.__version__" }
-
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
 
 [tool.ruff]
-include = [
-    "pyproject.toml",
-    "src/*/*.py",
-]
 line-length = 120
 indent-width = 4
-
+target-version = "py39"
+include = [
+    "pyproject.toml",
+    "src/mwa_source_finder/*.py",
+]
 
 [tool.ruff.lint]
 select = [
@@ -56,13 +49,7 @@ select = [
     "I",
 ]
 
-
 [tool.ruff.format]
-# Like Black, use double quotes for strings.
 quote-style = "double"
-
-# Like Black, indent with spaces, rather than tabs.
 indent-style = "space"
-
-# Like Black, automatically detect the appropriate line ending.
 line-ending = "auto"

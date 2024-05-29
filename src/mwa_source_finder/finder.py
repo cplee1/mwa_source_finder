@@ -87,15 +87,13 @@ def find_sources_in_obs(
         for source_name in pointings:
             pointing = pointings[source_name]
             logger.info(
-                f"Source: {pointing['name']:30} "
-                + f"RAJ: {pointing['RAJ']:14} "
-                + f"DECJ: {pointing['DECJ']:15}"
+                f"Source: {pointing['name']:30} " + f"RAJ: {pointing['RAJ']:14} " + f"DECJ: {pointing['DECJ']:15}"
             )
     else:
         logger.info("Collecting pulsars from the ATNF catalogue...")
         pointings = coord_utils.get_atnf_pulsars(logger=logger)
-        logger.info(f"{len(pointings)} pulsar pointings parsed from the catalogue")  
-    
+        logger.info(f"{len(pointings)} pulsar pointings parsed from the catalogue")
+
     if obsids is not None:
         # Get obs IDs from command line
         valid_obsids = []
@@ -130,20 +128,18 @@ def find_sources_in_obs(
                 if not req_obsid_found:
                     obsids_to_query.append(req_obsid)
             logger.info(f"{len(obsids) - len(obsids_to_query)} obs IDs loaded from cache file: {cache_file}")
-            
+
     # Only query the obs IDs which aren't in the cache
     if len(obsids_to_query) > 0:
         logger.info("Obtaining metadata for observations...")
         for obsid in tqdm(obsids_to_query, unit="obsid"):
-            obs_metadata_tmp = obs_utils.get_common_metadata(
-                obsid, filter_available, logger
-            )
+            obs_metadata_tmp = obs_utils.get_common_metadata(obsid, filter_available, logger)
             if obs_metadata_tmp is not None:
                 all_obs_metadata[obsid] = obs_metadata_tmp
         if not no_cache:
             # Update the cache file
             obs_utils.save_as_yaml(all_obs_metadata)
-    
+
     obsids = all_obs_metadata.keys()
 
     if len(obsids) == 0:
@@ -176,9 +172,7 @@ def find_sources_in_obs(
             source_data = []
             for obsid in obsids:
                 if source_name in beam_coverage[obsid]:
-                    enter_beam, exit_beam, max_power, _, _ = beam_coverage[obsid][
-                        source_name
-                    ]
+                    enter_beam, exit_beam, max_power, _, _ = beam_coverage[obsid][source_name]
                     source_data.append([obsid, enter_beam, exit_beam, max_power])
             finder_results[source_name] = source_data
     else:
@@ -187,9 +181,7 @@ def find_sources_in_obs(
             for source_name in pointings:
                 pointing = pointings[source_name]
                 if source_name in beam_coverage[obsid]:
-                    enter_beam, exit_beam, max_power, _, _ = beam_coverage[obsid][
-                        source_name
-                    ]
+                    enter_beam, exit_beam, max_power, _, _ = beam_coverage[obsid][source_name]
                     obsid_data.append([source_name, enter_beam, exit_beam, max_power])
             finder_results[obsid] = obsid_data
 

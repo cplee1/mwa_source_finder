@@ -382,5 +382,5 @@ def source_beam_coverage(
     for obsid in obsids_to_remove:
         beam_coverage.pop(obsid)
         all_obs_metadata.pop(obsid)
-    
+
     return beam_coverage, all_obs_metadata

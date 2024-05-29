@@ -67,7 +67,7 @@ def write_output_source_files(
             best_obsid = source_obs_plan["obsid"]
             start_t, stop_t = source_obs_plan["optimal_range"]
             gps_start_t = obs_metadata_dict[best_obsid]["start_t"]
-            
+
             obs_plan_str = (
                 "# Observation plan:\n"
                 + f"# Best obs          -- {best_obsid}\n"
@@ -161,8 +161,8 @@ def write_output_obs_files(
         data.write(out_file, format="ascii.fixed_width_two_line", overwrite=True)
 
         obs_metadata = obs_metadata_dict[obsid]
-        t_start_offset = t_start*obs_metadata['duration']
-        t_stop_offset = t_end*obs_metadata['duration']
+        t_start_offset = t_start * obs_metadata["duration"]
+        t_stop_offset = t_end * obs_metadata["duration"]
         divider_str = "# " + "-" * 78 + "\n"
         header = (
             divider_str
@@ -228,13 +228,9 @@ def invert_finder_results(finder_results: dict, obs_for_source: bool = True) -> 
                     new_finder_results[obsid] = []
 
                 if len(obsid_data) == 4:
-                    new_finder_results[obsid].append(
-                        [source, enter_beam, exit_beam, max_power]
-                    )
+                    new_finder_results[obsid].append([source, enter_beam, exit_beam, max_power])
                 else:
-                    new_finder_results[obsid].append(
-                        [source, enter_beam, exit_beam, max_power, dur, fctr, bw]
-                    )
+                    new_finder_results[obsid].append([source, enter_beam, exit_beam, max_power, dur, fctr, bw])
     else:
         for obsid in finder_results:
             finder_result = finder_results[obsid]
@@ -242,8 +238,6 @@ def invert_finder_results(finder_results: dict, obs_for_source: bool = True) -> 
                 source, enter_beam, exit_beam, max_power = source_data
                 if source not in new_finder_results:
                     new_finder_results[source] = []
-                new_finder_results[source].append(
-                    [obsid, enter_beam, exit_beam, max_power]
-                )
+                new_finder_results[source].append([obsid, enter_beam, exit_beam, max_power])
 
     return new_finder_results

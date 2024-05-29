@@ -99,11 +99,9 @@ def plot_power_vs_time(
 
                     # Plot powers
                     if ii >= len(line_combos):
-                        logger.error(
-                            f"Source {source_name}: Too many obs IDs to make a power vs time plot. Skipping."
-                        )
+                        logger.error(f"Source {source_name}: Too many obs IDs to make a power vs time plot. Skipping.")
                         return
-                
+
                     ax.errorbar(
                         times,
                         powers,
@@ -150,9 +148,7 @@ def plot_power_vs_time(
 
                 # Plot powers
                 if ii >= len(line_combos):
-                    logger.error(
-                        f"Obs ID {obsid}: Too many sources to make a power vs time plot. Skipping."
-                    )
+                    logger.error(f"Obs ID {obsid}: Too many sources to make a power vs time plot. Skipping.")
                     return
 
                 ax.errorbar(
@@ -279,9 +275,7 @@ def plot_beam_sky_map(
         )
 
         # Plot power contours
-        ax_2D.contour(
-            az, za, powers, contour_levels, colors="k", linewidths=1, zorder=1e2
-        )
+        ax_2D.contour(az, za, powers, contour_levels, colors="k", linewidths=1, zorder=1e2)
 
         # Plot source paths through beam
         for altaz_step in source_altaz:
@@ -308,12 +302,7 @@ def plot_beam_sky_map(
         ax_2D.set_theta_direction(-1)
         ax_2D.grid(ls=":", color="0.5")
         ax_2D.set_yticks(np.radians([15, 35, 55, 75]))
-        ax_2D.set_yticklabels(
-            [
-                rf"${int(x)}^{{\degree}}$"
-                for x in np.round(np.degrees(ax_2D.get_yticks()), 0)
-            ]
-        )
+        ax_2D.set_yticklabels([rf"${int(x)}^{{\degree}}$" for x in np.round(np.degrees(ax_2D.get_yticks()), 0)])
         ax_2D.set_xlabel("Azimuth angle [deg]", labelpad=5)
         ax_2D.set_ylabel("Zenith angle [deg]", labelpad=30)
         ax_2D.tick_params(labelsize=10)

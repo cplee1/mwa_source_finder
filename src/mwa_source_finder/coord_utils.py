@@ -94,9 +94,7 @@ def is_sexigesimal(coord: str, mode: str) -> bool:
     return True
 
 
-def format_sexigesimal(
-    coord: str, add_sign: bool = False, logger: logging.Logger = None
-) -> Optional[str]:
+def format_sexigesimal(coord: str, add_sign: bool = False, logger: logging.Logger = None) -> Optional[str]:
     """Format a sexigesimal coordinate properly. Will assume zero for any
     missing units. E.g. '09:23' will be formatted as '09:23:00.00'.
 
@@ -200,9 +198,7 @@ def sexigesimal_to_decimal(raj: str, decj: str) -> Tuple[float, float]:
 
 def equatorial_to_horizontal(
     rajd: Union[float, np.ndarray], decjd: Union[float, np.ndarray], gps_epoch: float
-) -> Tuple[
-    Union[float, np.ndarray], Union[float, np.ndarray], Union[float, np.ndarray]
-]:
+) -> Tuple[Union[float, np.ndarray], Union[float, np.ndarray], Union[float, np.ndarray]]:
     """Convert equatorial (RA/DEC) to horizontal (Alt/Az) coordinates.
 
     Parameters
@@ -282,9 +278,7 @@ def get_pulsar_coords(
     return raj, decj, rajd, decjd
 
 
-def interpret_coords(
-    coords: str, logger: logging.Logger = None
-) -> Tuple[str, str, float, float]:
+def interpret_coords(coords: str, logger: logging.Logger = None) -> Tuple[str, str, float, float]:
     """Interpret source coordinates.
 
     Parameters
@@ -373,9 +367,7 @@ def get_pointings(sources: list, logger: logging.Logger = None) -> dict:
     # If required, query the catalogue
     if query_flag:
         logger.debug("Querying the pulsar catalogue")
-        query = psrqpy.QueryATNF(
-            params=["PSRJ", "PSRB", "RAJ", "DECJ", "RAJD", "DECJD"]
-        )
+        query = psrqpy.QueryATNF(params=["PSRJ", "PSRB", "RAJ", "DECJ", "RAJD", "DECJD"])
         logger.info(f"Using ATNF pulsar catalogue version {query.get_version}")
     # Loop through all sources, get pointings and add them to dictionaries
     for source in sources:
