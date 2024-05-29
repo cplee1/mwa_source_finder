@@ -1,13 +1,18 @@
 import logging
 
+__all__ = [
+    "get_log_levels",
+    "get_logger",
+]
+
 
 def get_log_levels() -> dict:
-    """Get all available logging levels.
+    """Get all available logger verbosity levels.
 
     Returns
     -------
     log_levels : `dict`
-        A dictionary containing all available logging levels.
+        A dictionary containing all available logger verbosity levels.
     """
     return dict(
         DEBUG=logging.DEBUG,
@@ -18,20 +23,22 @@ def get_log_levels() -> dict:
     )
 
 
-def get_logger(log_level: int = logging.INFO) -> logging.Logger:
-    """Initialise a custom logger.
+def get_logger(name: str = __name__, log_level: int = logging.INFO) -> logging.Logger:
+    """Initialise the custom logger.
 
     Parameters
     ----------
-    loglvl : `int`, optional
-        The logging level, by default logging.INFO.
+    name : `str`, optional
+        The name of the logger. Default: `__name__`.
+    log_level : `int`, optional
+        The logging level. Default: `logging.INFO`.
 
     Returns
     -------
     logger : `logging.Logger`
-        A customised logger object.
+        The custom logger.
     """
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger(name)
     formatter = logging.Formatter("%(asctime)s %(levelname)-9s :: %(message)s")
     handler = logging.StreamHandler()
     handler.setFormatter(formatter)

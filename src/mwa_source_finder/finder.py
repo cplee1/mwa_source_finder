@@ -5,7 +5,9 @@ from typing import Tuple
 import yaml
 from tqdm import tqdm
 
-from mwa_source_finder import beam_utils, coord_utils, logger_setup, obs_utils
+import mwa_source_finder as sf
+
+__all__ = ["find_sources_in_obs"]
 
 
 def find_sources_in_obs(
@@ -77,11 +79,11 @@ def find_sources_in_obs(
         organised by source name.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     if sources is not None:
         # Convert source list to pointing list
-        pointings = coord_utils.get_pointings(sources, logger=logger)
+        pointings = sf.utils.get_pointings(sources, logger=logger)
         # Print out a full list of sources
         logger.info(f"{len(pointings)} pointings parsed sucessfully")
         for source_name in pointings:
@@ -91,7 +93,7 @@ def find_sources_in_obs(
             )
     else:
         logger.info("Collecting pulsars from the ATNF catalogue...")
-        pointings = coord_utils.get_atnf_pulsars(logger=logger)
+        pointings = sf.utils.get_atnf_pulsars(logger=logger)
         logger.info(f"{len(pointings)} pulsar pointings parsed from the catalogue")
 
     if obsids is not None:
@@ -107,14 +109,14 @@ def find_sources_in_obs(
     else:
         # Get all obs IDs
         logger.info("Obtaining a list of all obs IDs...")
-        obsids = obs_utils.get_all_obsids(logger=logger)
+        obsids = sf.utils.get_all_obsids(logger=logger)
         logger.info(f"{len(obsids)} obs IDs found in MWA archive")
 
     all_obs_metadata = dict()
     obsids_to_query = obsids
     if not no_cache:
         # Check if the obs ID metadata has been cached
-        cache_file = obs_utils.check_obsid_cache()
+        cache_file = sf.utils.check_obsid_cache()
         if cache_file is not None:
             with open(cache_file, "r") as yamlfile:
                 all_obs_metadata = yaml.safe_load(yamlfile)
@@ -133,12 +135,12 @@ def find_sources_in_obs(
     if len(obsids_to_query) > 0:
         logger.info("Obtaining metadata for observations...")
         for obsid in tqdm(obsids_to_query, unit="obsid"):
-            obs_metadata_tmp = obs_utils.get_common_metadata(obsid, filter_available, logger)
+            obs_metadata_tmp = sf.utils.get_common_metadata(obsid, filter_available, logger)
             if obs_metadata_tmp is not None:
                 all_obs_metadata[obsid] = obs_metadata_tmp
         if not no_cache:
             # Update the cache file
-            obs_utils.save_as_yaml(all_obs_metadata)
+            sf.utils.save_as_yaml(all_obs_metadata)
 
     obsids = all_obs_metadata.keys()
 
@@ -147,7 +149,7 @@ def find_sources_in_obs(
         sys.exit(1)
 
     logger.info("Finding sources in beams...")
-    beam_coverage, all_obs_metadata = beam_utils.source_beam_coverage(
+    beam_coverage, all_obs_metadata = sf.source_beam_coverage(
         pointings,
         obsids,
         all_obs_metadata,

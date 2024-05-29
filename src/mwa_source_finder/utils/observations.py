@@ -7,7 +7,15 @@ from typing import Optional
 
 import yaml
 
-from mwa_source_finder import logger_setup
+import mwa_source_finder as sf
+
+__all__ = [
+    "get_metadata",
+    "get_common_metadata",
+    "get_all_obsids",
+    "check_obsid_cache",
+    "save_as_yaml",
+]
 
 
 def get_metadata(
@@ -101,7 +109,7 @@ def get_common_metadata(obsid: int, filter_available: bool = False, logger: logg
         A dictionary of commonly used metadata.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     obs_metadata = get_metadata(service="obs", params={"obs_id": obsid}, logger=logger)
     if obs_metadata is None:
@@ -184,7 +192,7 @@ def get_all_obsids(pagesize: int = 50, logger: logging.Logger = None) -> list:
         A list of the MWA observation IDs.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     legacy_params = {"mode": "VOLTAGE_START"}
     mwax_params = {"mode": "MWAX_VCS"}

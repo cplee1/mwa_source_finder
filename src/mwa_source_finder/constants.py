@@ -1,6 +1,14 @@
 from astropy import units as u
 from astropy.coordinates import EarthLocation
 
+__all__ = [
+    "TEL_LAT",
+    "TEL_LON",
+    "TEL_ELEV",
+    "TEL_LOCATION",
+    "LINE_STYLES",
+]
+
 TEL_LAT = -26.703319
 TEL_LON = 116.67081
 TEL_ELEV = 377.827

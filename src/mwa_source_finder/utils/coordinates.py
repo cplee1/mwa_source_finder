@@ -7,10 +7,20 @@ from astropy import units as u
 from astropy.coordinates import AltAz, SkyCoord
 from astropy.time import Time
 
-from mwa_source_finder import logger_setup
+import mwa_source_finder as sf
+
+__all__ = [
+    "decimal_to_sexigesimal",
+    "sexigesimal_to_decimal",
+    "equatorial_to_horizontal",
+    "get_pulsar_coords",
+    "interpret_coords",
+    "get_pointings",
+    "get_atnf_pulsars",
+]
 
 
-def is_float(string: str) -> bool:
+def _is_float(string: str) -> bool:
     """Check if a string is a valid representation of a float.
 
     Parameters
@@ -20,7 +30,7 @@ def is_float(string: str) -> bool:
 
     Returns
     -------
-    is_float : `bool`
+    _is_float : `bool`
         Whether the string is able to be converted to a float.
     """
     try:
@@ -30,7 +40,7 @@ def is_float(string: str) -> bool:
         return False
 
 
-def is_int(string: str) -> bool:
+def _is_int(string: str) -> bool:
     """Check if a string is a valid representation of an integer.
 
     Parameters
@@ -40,7 +50,7 @@ def is_int(string: str) -> bool:
 
     Returns
     -------
-    is_int : `bool`
+    _is_int : `bool`
         Whether the string is able to be converted to a float.
     """
     if string.isnumeric():
@@ -49,7 +59,7 @@ def is_int(string: str) -> bool:
         return False
 
 
-def is_sexigesimal(coord: str, mode: str) -> bool:
+def _is_sexigesimal(coord: str, mode: str) -> bool:
     """Check if a string is a valid sexigesimal coordinate.
 
     Parameters
@@ -61,12 +71,12 @@ def is_sexigesimal(coord: str, mode: str) -> bool:
 
     Returns
     -------
-    is_sexigesimal : `bool`
+    _is_sexigesimal : `bool`
         Whether the string is a valid sexigesimal coordinate.
     """
     if mode == "RA":
         hours, minutes, seconds = coord.split(":")
-        if not is_int(hours):
+        if not _is_int(hours):
             return False
         if int(hours) < 0 or int(hours) > 24:
             return False
@@ -74,22 +84,22 @@ def is_sexigesimal(coord: str, mode: str) -> bool:
         degrees, minutes, seconds = coord.split(":")
         if degrees.startswith(("-", "–", "+")):
             degrees = degrees[1:]
-        if not is_int(degrees):
+        if not _is_int(degrees):
             return False
         if int(degrees) < 0 or int(degrees) > 90:
             return False
-    if not is_int(minutes):
+    if not _is_int(minutes):
         return False
     if int(minutes) < 0 or int(minutes) > 60:
         return False
-    if not is_float(seconds):
+    if not _is_float(seconds):
         return False
     if float(seconds) < 0.0 or float(seconds) > 60.0:
         return False
     return True
 
 
-def format_sexigesimal(coord: str, add_sign: bool = False, logger: logging.Logger = None) -> Optional[str]:
+def _format_sexigesimal(coord: str, add_sign: bool = False, logger: logging.Logger = None) -> Optional[str]:
     """Format a sexigesimal coordinate properly. Will assume zero for any
     missing units. E.g. '09:23' will be formatted as '09:23:00.00'.
 
@@ -108,7 +118,7 @@ def format_sexigesimal(coord: str, add_sign: bool = False, logger: logging.Logge
         The properly formatted coordinate.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     # Determine the sign
     if coord.startswith(("-", "–")):
@@ -217,7 +227,7 @@ def equatorial_to_horizontal(
 
     eq_pos = SkyCoord(rajd, decjd, unit=(u.deg, u.deg))
     obstime = Time(float(gps_epoch), format="gps")
-    altaz_pos = eq_pos.transform_to(AltAz(obstime=obstime, location=TEL_LOCATION))
+    altaz_pos = eq_pos.transform_to(AltAz(obstime=obstime, location=sf.TEL_LOCATION))
     alt = altaz_pos.alt.deg
     az = altaz_pos.az.deg
     za = 90.0 - alt
@@ -250,7 +260,7 @@ def get_pulsar_coords(
         The J2000 declination in decimal degrees.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     # If pulsar Bname, convert to Jname
     if pulsar.startswith("B"):
@@ -295,7 +305,7 @@ def interpret_coords(coords: str, logger: logging.Logger = None) -> Tuple[str, s
         The J2000 declination in decimal degrees.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     # Split up the coordinates
     raj = coords.split("_")[0]
@@ -310,7 +320,7 @@ def interpret_coords(coords: str, logger: logging.Logger = None) -> Tuple[str, s
         # Add positive sign if no sign is present
         if decj[0].isdigit():
             decj = f"+{decj}"
-    elif is_float(raj) and is_float(decj):
+    elif _is_float(raj) and _is_float(decj):
         # Must be a decimal
         decimal_flag = True
     else:
@@ -323,13 +333,13 @@ def interpret_coords(coords: str, logger: logging.Logger = None) -> Tuple[str, s
         raj, decj = decimal_to_sexigesimal(rajd, decjd)
     else:
         # Check that the coordinates are valid
-        if not is_sexigesimal(raj, "RA") or not is_sexigesimal(decj, "DEC"):
+        if not _is_sexigesimal(raj, "RA") or not _is_sexigesimal(decj, "DEC"):
             logger.error(f"Invalid sexigesimal format: {coords}")
             return None, None, None, None
         rajd, decjd = sexigesimal_to_decimal(raj, decj)
     # Make sure sexigesimal coords are formatted correctly
-    raj = format_sexigesimal(raj, logger=logger)
-    decj = format_sexigesimal(decj, add_sign=True, logger=logger)
+    raj = _format_sexigesimal(raj, logger=logger)
+    decj = _format_sexigesimal(decj, add_sign=True, logger=logger)
     return raj, decj, rajd, decjd
 
 
@@ -350,7 +360,7 @@ def get_pointings(sources: list, logger: logging.Logger = None) -> dict:
         by source name.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     pointings = dict()
     query_flag = False
@@ -396,7 +406,7 @@ def get_atnf_pulsars(logger: logging.Logger = None) -> dict:
         by source name.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     logger.debug("Querying the pulsar catalogue")
     query = psrqpy.QueryATNF(params=["PSRJ", "RAJ", "DECJ", "RAJD", "DECJD"])
@@ -409,8 +419,8 @@ def get_atnf_pulsars(logger: logging.Logger = None) -> dict:
     # Loop through all the pulsars and store the pointings in dictionaries
     pointings = dict()
     for psrj, raj, decj, rajd, decjd in zip(psrjs, rajs, decjs, rajds, decjds):
-        raj = format_sexigesimal(raj, logger=logger)
-        decj = format_sexigesimal(decj, add_sign=True, logger=logger)
+        raj = _format_sexigesimal(raj, logger=logger)
+        decj = _format_sexigesimal(decj, add_sign=True, logger=logger)
         pointing = dict(name=psrj, RAJ=raj, DECJ=decj, RAJD=rajd, DECJD=decjd)
         pointings[psrj] = pointing
     return pointings

@@ -7,7 +7,15 @@ import mwa_hyperbeam
 import numpy as np
 from scipy import interpolate
 
-from mwa_source_finder import coord_utils, logger_setup
+import mwa_source_finder as sf
+
+__all__ = [
+    "compute_beam_power_array",
+    "get_beam_power_vs_time",
+    "get_beam_power_sky_map",
+    "beam_enter_exit",
+    "source_beam_coverage",
+]
 
 
 def compute_beam_power_array(
@@ -41,7 +49,7 @@ def compute_beam_power_array(
         The beam powers as flattened array.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     if os.environ.get("MWA_BEAM_FILE"):
         beam = mwa_hyperbeam.FEEBeam()
@@ -119,7 +127,7 @@ def get_beam_power_vs_time(
         The frequency of the beam model used.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     # Unpack some metadata
     obsid = obs_metadata["obsid"]
@@ -160,7 +168,7 @@ def get_beam_power_vs_time(
     P = np.zeros(shape=(len(pointings), len(times)), dtype=float)
     logger.debug("Computing beam power over time for all sources")
     for itime, time in enumerate(times):
-        _, Azs, ZAs = coord_utils.equatorial_to_horizontal(RAs, DECs, time)
+        _, Azs, ZAs = sf.utils.equatorial_to_horizontal(RAs, DECs, time)
         P[:, itime] = compute_beam_power_array(
             np.radians(Azs),
             np.radians(ZAs),
@@ -198,7 +206,7 @@ def get_beam_power_sky_map(
         An array of powers in the shape of the meshgrid.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     az0, az1 = 0, 2 * np.pi
     za0, za1 = 0, 0.95 * np.pi / 2
@@ -330,7 +338,7 @@ def source_beam_coverage(
         the frequency at which each observation was searched.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     if norm_mode == "zenith":
         norm_to_zenith = True

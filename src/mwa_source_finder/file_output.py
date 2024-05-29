@@ -3,7 +3,13 @@ import logging
 import numpy as np
 from astropy.table import Table
 
-from mwa_source_finder import logger_setup
+import mwa_source_finder as sf
+
+__all__ = [
+    "write_output_source_files",
+    "write_output_obs_files",
+    "invert_finder_results",
+]
 
 
 def write_output_source_files(
@@ -33,7 +39,7 @@ def write_output_source_files(
         A custom logger to use, by default None.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     for source in finder_result:
         if len(finder_result[source]) == 0:
@@ -135,7 +141,7 @@ def write_output_obs_files(
         A custom logger to use, by default None.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     for obsid in finder_result:
         if len(finder_result[obsid]) == 0:

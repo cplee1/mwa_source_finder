@@ -1,3 +1,3 @@
-from .logger import *
 from .coordinates import *
+from .logger import *
 from .observations import *

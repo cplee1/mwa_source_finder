@@ -8,11 +8,17 @@ import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
 from astropy.time import Time
 
-from mwa_source_finder import beam_utils, coord_utils, logger_setup
+import mwa_source_finder as sf
 
 plt.rcParams["mathtext.fontset"] = "dejavuserif"
 plt.rcParams["font.family"] = "serif"
 plt.rcParams["font.size"] = 12
+
+__all__ = [
+    "setup_axis",
+    "plot_power_vs_time",
+    "plot_beam_sky_map",
+]
 
 
 def setup_axis(ax, duration, fontsize=12):
@@ -58,10 +64,10 @@ def plot_power_vs_time(
         A custom logger to use, by default None.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     line_combos = []
-    for lsi in LINE_STYLES:
+    for lsi in sf.LINE_STYLES:
         for coli in list(mcolors.TABLEAU_COLORS):
             line_combos.append([lsi, coli])
 
@@ -203,9 +209,9 @@ def plot_beam_sky_map(
         A custom logger to use, by default None.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
-    az, za, powers = beam_utils.get_beam_power_sky_map(
+    az, za, powers = sf.get_beam_power_sky_map(
         obs_metadata,
         norm_to_zenith=norm_to_zenith,
         logger=logger,
@@ -215,7 +221,7 @@ def plot_beam_sky_map(
     start_t = Time(obs_metadata["start_t"], format="gps")
     end_t = Time(obs_metadata["stop_t"], format="gps")
     source_dt = np.linspace(-3600, obs_metadata["duration"] + 3600, 50) * u.s
-    obs_frame = AltAz(obstime=start_t + source_dt, location=coord_utils.TEL_LOCATION)
+    obs_frame = AltAz(obstime=start_t + source_dt, location=sf.TEL_LOCATION)
 
     # Get sky coordinates for found pulsars
     found_sources = [entry[0] for entry in obs_finder_result]

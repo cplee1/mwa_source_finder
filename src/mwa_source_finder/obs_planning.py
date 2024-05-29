@@ -4,10 +4,17 @@ from typing import Tuple
 
 import numpy as np
 
-from mwa_source_finder import logger_setup
+import mwa_source_finder as sf
+
+__all__ = [
+    "plan_obs_times",
+    "find_best_obs_times_for_sources",
+    "plan_data_download",
+    "find_contiguous_ranges",
+]
 
 
-def round_down(time: float, chunksize: float = 8.0) -> float:
+def _round_down(time: float, chunksize: float = 8.0) -> float:
     """Round the time down to the nearest multiple of the chunksize.
 
     Parameters
@@ -58,7 +65,7 @@ def plan_obs_times(
         The time of the peak power in the beam, in seconds.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     # Unpack some metadata
     obsid = obs_metadata["obsid"]
@@ -138,7 +145,7 @@ def find_best_obs_times_for_sources(
         stop time, of the best observation.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     # The plan will be stored as a dictionary of source names
     obs_plan = dict()
@@ -220,7 +227,7 @@ def plan_data_download(
         downloaded data.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     # Get a list of unique obs IDs
     all_obsids = [obs_plan[source]["obsid"] for source in obs_plan]
@@ -238,8 +245,8 @@ def plan_data_download(
         contig_ranges = find_contiguous_ranges(source_beam_ranges[obsid], 600)
         for contig_range in contig_ranges:
             start_time, stop_time, sources = contig_range
-            start_time = round_down(start_time, 8)
-            stop_time = round_down(stop_time, 8)
+            start_time = _round_down(start_time, 8)
+            stop_time = _round_down(stop_time, 8)
             download_plans.append((obsid, start_time, stop_time, sources))
 
     # Write download plan to a csvfile
