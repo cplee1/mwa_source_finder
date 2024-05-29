@@ -4,15 +4,10 @@ from typing import Optional, Tuple, Union
 import numpy as np
 import psrqpy
 from astropy import units as u
-from astropy.coordinates import AltAz, EarthLocation, SkyCoord
+from astropy.coordinates import AltAz, SkyCoord
 from astropy.time import Time
 
 from mwa_source_finder import logger_setup
-
-TEL_LAT = -26.703319
-TEL_LON = 116.67081
-TEL_ELEV = 377.827
-TEL_LOCATION = EarthLocation(lat=TEL_LAT * u.deg, lon=TEL_LON * u.deg, height=TEL_ELEV * u.m)
 
 
 def is_float(string: str) -> bool:
