@@ -2,8 +2,7 @@
 Code to find sources in MWA VCS observations.
 
 ## Installation
-This package can be installed into your working environment using `pip` with
-the follwing command:
+This package can be installed into your working environment with `pip` as follows:
 
     pip install git+https://github.com/cplee1/mwa_source_finder.git
 
@@ -12,7 +11,7 @@ running
 
     pip install <source_directory>
 
-Where `<source_directory>` is the directory containing the `pyproject.toml` file.
+where `<source_directory>` is the directory containing the `pyproject.toml` file.
 
 This code uses `mwa_hyperbeam`, which requires the MWA FEE HDF5 file. This file
 can be obtained as follows:
