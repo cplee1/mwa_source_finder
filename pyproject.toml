@@ -35,6 +35,7 @@ target-version = "py39"
 include = [
     "pyproject.toml",
     "src/mwa_source_finder/*.py",
+    "src/mwa_source_finder/applications/*.py",
 ]
 
 [tool.ruff.lint]
