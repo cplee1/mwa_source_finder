@@ -1,7 +1,7 @@
 import argparse
 import sys
 
-from mwa_source_finder import file_output, finder, logger_setup, obs_planning, plotting
+import mwa_source_finder as sf
 
 
 def load_items_from_file(filename: str) -> list:
@@ -31,10 +31,10 @@ def main():
     parser = argparse.ArgumentParser(
         usage="%(prog)s [options]",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="Code to find sources in MWA VCS observations.",
+        description="Find sources in MWA VCS observations.",
         add_help=False,
     )
-    loglevels = logger_setup.get_log_levels()
+    loglevels = sf.utils.get_log_levels()
 
     # Program arguments
     optional = parser.add_argument_group("Program arguments")
@@ -195,7 +195,7 @@ def main():
     args = parser.parse_args()
 
     # Initialise the logger
-    logger = logger_setup.get_logger(loglevels[args.loglvl])
+    logger = sf.utils.get_logger(loglevels[args.loglvl])
 
     # Input checking
     if (
@@ -269,7 +269,7 @@ def main():
         beam_coverage,
         pointings,
         all_obs_metadata,
-    ) = finder.find_sources_in_obs(
+    ) = sf.find_sources_in_obs(
         sources,
         obsids,
         args.start,
@@ -286,7 +286,7 @@ def main():
 
     if args.obs_for_source:
         if args.plan_obs_length is not None:
-            obs_plan = obs_planning.find_best_obs_times_for_sources(
+            obs_plan = sf.find_best_obs_times_for_sources(
                 pointings.keys(),
                 all_obs_metadata,
                 beam_coverage,
@@ -295,11 +295,11 @@ def main():
             )
 
             if args.download_plan:
-                obs_planning.plan_data_download(obs_plan, savename="download_plan.csv", logger=logger)
+                sf.plan_data_download(obs_plan, savename="download_plan.csv", logger=logger)
         else:
             obs_plan = None
 
-        file_output.write_output_source_files(
+        sf.write_output_source_files(
             finder_results,
             all_obs_metadata,
             args.freq_mode,
@@ -309,7 +309,7 @@ def main():
             logger=logger,
         )
     else:
-        file_output.write_output_obs_files(
+        sf.write_output_obs_files(
             finder_results,
             all_obs_metadata,
             args.start,
@@ -320,7 +320,7 @@ def main():
         )
 
     if args.time_plot:
-        plotting.plot_power_vs_time(
+        sf.plot_power_vs_time(
             pointings.keys(),
             all_obs_metadata,
             beam_coverage,
@@ -332,13 +332,13 @@ def main():
     if args.beam_plot:
         # Ensure finder results are in source-for-obs format
         if args.obs_for_source:
-            obs_finder_results = file_output.invert_finder_results(finder_results)
+            obs_finder_results = sf.invert_finder_results(finder_results)
         else:
             obs_finder_results = finder_results
 
         for obsid in all_obs_metadata:
             obs_metadata = all_obs_metadata[obsid]
-            plotting.plot_beam_sky_map(
+            sf.plot_beam_sky_map(
                 obs_finder_results[obsid],
                 beam_coverage,
                 obs_metadata,
