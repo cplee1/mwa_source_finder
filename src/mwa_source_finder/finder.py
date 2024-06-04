@@ -112,6 +112,7 @@ def find_sources_in_obs(
         obsids = sf.utils.get_all_obsids(logger=logger)
         logger.info(f"{len(obsids)} obs IDs found in MWA archive")
 
+    cached_obs_metadata = dict()
     all_obs_metadata = dict()
     obsids_to_query = obsids
     if not no_cache:
@@ -119,13 +120,14 @@ def find_sources_in_obs(
         cache_file = sf.utils.check_obsid_cache()
         if cache_file is not None:
             with open(cache_file, "r") as yamlfile:
-                all_obs_metadata = yaml.safe_load(yamlfile)
+                cached_obs_metadata = yaml.safe_load(yamlfile)
             obsids_to_query = []
             for req_obsid in obsids:
                 req_obsid_found = False
-                for cached_obsid in all_obs_metadata.keys():
+                for cached_obsid in cached_obs_metadata.keys():
                     if cached_obsid == req_obsid:
                         req_obsid_found = True
+                        all_obs_metadata[cached_obsid] = cached_obs_metadata[cached_obsid]
                         break
                 if not req_obsid_found:
                     obsids_to_query.append(req_obsid)
@@ -138,9 +140,10 @@ def find_sources_in_obs(
             obs_metadata_tmp = sf.utils.get_common_metadata(obsid, filter_available, logger)
             if obs_metadata_tmp is not None:
                 all_obs_metadata[obsid] = obs_metadata_tmp
+                cached_obs_metadata[obsid] = obs_metadata_tmp
         if not no_cache:
             # Update the cache file
-            sf.utils.save_as_yaml(all_obs_metadata)
+            sf.utils.save_as_yaml(cached_obs_metadata)
 
     obsids = all_obs_metadata.keys()
 
