@@ -252,7 +252,10 @@ def main():
 
     # Get obs IDs from command line, if specified
     if args.obsids or args.obsids_file:
-        obsids = [str(obsid) for obsid in args.obsids]
+        if args.obsids:
+            obsids = [str(obsid) for obsid in args.obsids]
+        else:
+            obsids = []
         if args.obsids_file:
             logger.info(f"Parsing the provided obs ID list file: {args.obsids_file}")
             obsids_from_file = load_items_from_file(args.obsids_file)
