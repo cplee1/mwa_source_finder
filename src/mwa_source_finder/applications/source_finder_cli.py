@@ -195,7 +195,7 @@ def main():
     args = parser.parse_args()
 
     # Initialise the logger
-    logger = sf.utils.get_logger(loglevels[args.loglvl])
+    logger = sf.utils.get_logger(log_level=loglevels[args.loglvl])
 
     # Input checking
     if (

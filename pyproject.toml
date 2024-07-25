@@ -22,7 +22,7 @@ dependencies = [
 ]
 
 [project.scripts]
-source-finder = "mwa_source_finder.cli:main"
+source-finder = "mwa_source_finder.applications.source_finder_cli:main"
 
 [build-system]
 requires = ["setuptools"]
