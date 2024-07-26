@@ -3,11 +3,19 @@ import os
 import sys
 from typing import Tuple
 
+import mwa_hyperbeam
 import numpy as np
 from scipy import interpolate
-import mwa_hyperbeam
 
-from mwa_source_finder import logger_setup, coord_utils
+import mwa_source_finder as sf
+
+__all__ = [
+    "compute_beam_power_array",
+    "get_beam_power_vs_time",
+    "get_beam_power_sky_map",
+    "beam_enter_exit",
+    "source_beam_coverage",
+]
 
 
 def compute_beam_power_array(
@@ -22,26 +30,26 @@ def compute_beam_power_array(
 
     Parameters
     ----------
-    az : np.ndarray
+    az : `np.ndarray`
         The azimuth angles in radians.
-    za : np.ndarray
+    za : `np.ndarray`
         The zenith angles in radians.
-    freq : float
+    freq : `float`
         The frequency of the beam model.
-    delays : np.ndarray
+    delays : `np.ndarray`
         The antenna delays.
-    norm_to_zenith : bool, optional
+    norm_to_zenith : `bool`, optional
         Whether to normalise the powers to zenith, by default True.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
     Returns
     -------
-    np.ndarray
+    P : `np.ndarray`
         The beam powers as flattened array.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     if os.environ.get("MWA_BEAM_FILE"):
         beam = mwa_hyperbeam.FEEBeam()
@@ -88,41 +96,38 @@ def get_beam_power_vs_time(
 
     Parameters
     ----------
-    pointings : dict
+    pointings : `dict`
         A dictionary of dictionaries containing pointing information, organised
         by source name.
-    obs_metadata : dict
+    obs_metadata : `dict`
         A dictionary of commonly used metadata.
-    t_start : float
+    t_start : `float`
         The start time to search, as a fraction of the full observation.
-    t_end : float
+    t_end : `float`
         The end time to search, as a fraction of the full observation.
-    input_dt : float
+    input_dt : `float`
         The input step size in time (may be reduced).
-    norm_to_zenith : bool, optional
+    norm_to_zenith : `bool`, optional
         Whether to normalise the powers to zenith, by default True.
-    freq_mode : str, optional
+    freq_mode : `str`, optional
         The frequency to use to compute the beam power ['low', 'centre', 'high'],
         by default 'centre'.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
     Returns
     -------
-    Tuple[np.ndarray, np.ndarray, float, float]
-        A tuple containing the following:
-
-            P : np.ndarray
-                An array of powers with dimensions of (#sources, #timesteps).
-            times : np.ndarray
-                The timesteps used to compute the powers.
-            duration : float
-                The length of time searched in the observation.
-            freq : float
-                The frequency of the beam model used.
+    P : `np.ndarray`
+        An array of powers with dimensions of (#sources, #timesteps).
+    times : `np.ndarray`
+        The timesteps used to compute the powers.
+    duration : `float`
+        The length of time searched in the observation.
+    freq : `float`
+        The frequency of the beam model used.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     # Unpack some metadata
     obsid = obs_metadata["obsid"]
@@ -163,7 +168,7 @@ def get_beam_power_vs_time(
     P = np.zeros(shape=(len(pointings), len(times)), dtype=float)
     logger.debug("Computing beam power over time for all sources")
     for itime, time in enumerate(times):
-        _, Azs, ZAs = coord_utils.equatorial_to_horizontal(RAs, DECs, time)
+        _, Azs, ZAs = sf.utils.equatorial_to_horizontal(RAs, DECs, time)
         P[:, itime] = compute_beam_power_array(
             np.radians(Azs),
             np.radians(ZAs),
@@ -184,27 +189,24 @@ def get_beam_power_sky_map(
 
     Parameters
     ----------
-    obs_metadata : dict
+    obs_metadata : `dict`
         A dictionary of commonly used metadata.
-    norm_to_zenith : bool, optional
+    norm_to_zenith : `bool`, optional
         Whether to normalise the powers to zenith, by default True.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
     Returns
     -------
-    Tuple[np.ndarray, np.ndarray, np.ndarray]
-        A tuple containing the following:
-
-            az : np.ndarray
-                The meshgrid of azimuth angles in radians.
-            za : np.ndarray
-                The meshgrid of zenith angles in radians.
-            P : np.ndarray
-                An array of powers in the shape of the meshgrid.
+    az : `np.ndarray`
+        The meshgrid of azimuth angles in radians.
+    za : `np.ndarray`
+        The meshgrid of zenith angles in radians.
+    P : `np.ndarray`
+        An array of powers in the shape of the meshgrid.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     az0, az1 = 0, 2 * np.pi
     za0, za1 = 0, 0.95 * np.pi / 2
@@ -235,24 +237,21 @@ def beam_enter_exit(
 
     Parameters
     ----------
-    powers : np.ndarray
+    powers : `np.ndarray`
         A 2D array of powers for each timestep and channel.
-    times : np.ndarray
+    times : `np.ndarray`
         The timesteps used to compute the powers.
-    duration : float
+    duration : `float`
         The length of time searched in the observation.
-    min_power : float, optional
+    min_power : `float`, optional
         The minimum power to count as in the beam. By default 0.3.
 
     Returns
     -------
-    Tuple[float, float]
-        A tuple containing the following:
-
-            enter_beam : float
-                The fraction of the observation where the source enters the beam.
-            exit_beam : float
-                The fraction of the observation where the source exits the beam.
+    enter_beam : `float`
+        The fraction of the observation where the source enters the beam.
+    exit_beam : `float`
+        The fraction of the observation where the source exits the beam.
     """
     powers_offset = powers - min_power
 
@@ -295,54 +294,51 @@ def source_beam_coverage(
 
     Parameters
     ----------
-    pointings : dict
+    pointings : `dict`
         A dictionary of dictionaries containing pointing information,
         organised by source name.
-    obsids : list
+    obsids : `list`
         A list of obs IDs.
-    all_obs_metadata : dict
+    all_obs_metadata : `dict`
         A dictionary of dictionaries containing common metadata for each
         observation, organised by obs ID.
-    t_start : float, optional
+    t_start : `float`, optional
         The start time to search, as a fraction of the full observation, by
         default 0.0.
-    t_end : float, optional
+    t_end : `float`, optional
         The end time to search, as a fraction of the full observation, by
         default 1.0.
-    input_dt : float, optional
+    input_dt : `float`, optional
         The input step size in time (may be reduced), by default 60.
-    norm_mode : str, optional
+    norm_mode : `str`, optional
         The normalisation mode, by default 'zenith'.
-    min_power : float, optional
+    min_power : `float`, optional
         The minimum normalised power to count as in the beam, by default 0.3.
-    freq_mode : str, optional
+    freq_mode : `str`, optional
         The frequency to use to compute the beam power ['low', 'centre', 'high'],
         by default 'centre'.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
     Returns
     -------
-    Tuple[dict, dict]
-        A tuple containing the following:
+    beam_coverage : `dict`
+        A dictionary organised by obs IDs then source names, with each source
+        having a list the following:
 
-        beam_coverage : dict
-            A dictionary organised by obs IDs then source names, with each source
-            having a list the following:
+            enter_beam : `float`
+                The fraction of the observation where the source enters the beam.
+            exit_beam : `float`
+                The fraction of the observation where the source exits the beam.
+            max_pow: `float`
+                The maximum power reached within the beam.
 
-                enter_beam : float
-                    The fraction of the observation where the source enters the beam.
-                exit_beam : float
-                    The fraction of the observation where the source exits the beam.
-                max_pow: float
-                    The maximum power reached within the beam.
-
-        all_obs_metadata : dict
-            The same as the input dictionary with an added 'evalfreq' field for
-            the frequency at which each observation was searched.
+    all_obs_metadata : `dict`
+        The same as the input dictionary with an added 'evalfreq' field for
+        the frequency at which each observation was searched.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     if norm_mode == "zenith":
         norm_to_zenith = True
@@ -394,5 +390,5 @@ def source_beam_coverage(
     for obsid in obsids_to_remove:
         beam_coverage.pop(obsid)
         all_obs_metadata.pop(obsid)
-    
+
     return beam_coverage, all_obs_metadata

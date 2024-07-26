@@ -1,29 +1,62 @@
-[build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
-
 [project]
 name = "mwa_source_finder"
+version = "0.2.0"
+description = "Find sources in MWA observations."
 authors = [
-    { name = "Christopher Lee", email = "c.p.lee@postgrad.edu.au" },
+    { name = "Christopher Lee", email = "christopher.lee@icrar.org" },
     { name = "Nick Swainston" },
     { name = "Bradley Meyers" },
 ]
-description = "Find sources in MWA observations."
-requires-python = ">= 3.7"
 license = { file = "LICENSE" }
 readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">= 3.7"
 dependencies = [
     "numpy >= 1.17.0",
     "matplotlib >= 3.5",
     "astropy",
+    "pyyaml",
     "psrqpy >= 1.2.7",
-    "mwa-hyperbeam"
+    "mwa-hyperbeam",
+    "tqdm",
+    "ruff",
 ]
-dynamic = ["version"]
 
 [project.scripts]
-source-finder = "mwa_source_finder.cli:main"
+source-finder = "mwa_source_finder.applications.source_finder_cli:main"
 
-[tool.setuptools.dynamic]
-version = { attr = "mwa_source_finder.__version__" }
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.ruff]
+line-length = 120
+indent-width = 4
+target-version = "py39"
+include = [
+    "pyproject.toml",
+    "src/mwa_source_finder/*.py",
+    "src/mwa_source_finder/applications/*.py",
+]
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # flake8-bugbear
+    "B",
+    # isort
+    "I",
+]
+ignore = [
+    # Ignore unused imports
+    "F401",
+    # Ignore wildcard imports
+    "F403",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"

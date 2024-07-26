@@ -1,9 +1,21 @@
-import logging
-import time
 import json
+import logging
+import os
+import time
 import urllib
+from typing import Optional
 
-from mwa_source_finder import logger_setup
+import yaml
+
+import mwa_source_finder as sf
+
+__all__ = [
+    "get_metadata",
+    "get_common_metadata",
+    "get_all_obsids",
+    "check_obsid_cache",
+    "save_as_yaml",
+]
 
 
 def get_metadata(
@@ -18,28 +30,28 @@ def get_metadata(
 
     Parameters
     ----------
-    servicetype : str, optional
+    servicetype : `str`, optional
         Either the 'observation' which makes human readable html pages or
         'metadata' which returns data, by default 'metadata'.
-    service : str, optional
+    service : `str`, optional
         The meta data service out of ['obs', 'find', 'con'], by default 'obs'.
             obs: Returns details about a single observation.
             find: Search the database for observations that satisfy given criteria.
             con: Finds the configuration information for an observation.
-    params : dict, optional
+    params : `dict`, optional
         A dictionary of the options to use in the metadata call which is dependent
         on the service, by default None.
-    retries : int, optional
+    retries : `int`, optional
         The number of times to retry timeout errors, by default 3.
-    retry_http_error : bool, optional
+    retry_http_error : `bool`, optional
         Whether to retry the request after a HTTP error, by default False.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
     Returns
     -------
-    dict
-        The result for that service.
+    result : `dict`
+        The result for that service, interpreted as a json and stored as a dict.
     """
     # Append the service name to this base URL, eg 'con', 'obs', etc.
     BASEURL = "http://ws.mwatelescope.org/"
@@ -56,15 +68,9 @@ def get_metadata(
     for _ in range(0, retries):
         err = False
         try:
-            result = json.load(
-                urllib.request.urlopen(
-                    BASEURL + servicetype + "/" + service + "?" + data
-                )
-            )
+            result = json.load(urllib.request.urlopen(BASEURL + servicetype + "/" + service + "?" + data))
         except urllib.error.HTTPError as err:
-            logger.error(
-                f"HTTP error from server: code={err.code}, response: {err.read()}"
-            )
+            logger.error(f"HTTP error from server: code={err.code}, response: {err.read()}")
             if retry_http_error:
                 logger.error(f"Waiting {wait_time} seconds and trying again")
                 time.sleep(wait_time)
@@ -85,27 +91,25 @@ def get_metadata(
     return result
 
 
-def get_common_metadata(
-    obsid: int, filter_available: bool = False, logger: logging.Logger = None
-) -> dict:
+def get_common_metadata(obsid: int, filter_available: bool = False, logger: logging.Logger = None) -> dict:
     """Get observation metadata and extract some commonly used data.
 
     Parameters
     ----------
-    obsid : int
+    obsid : `int`
         The observation ID.
-    filter_available : bool, optional
+    filter_available : `bool`, optional
         Only search observations with data files available, by default False.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
     Returns
     -------
-    dict
+    common_metadata : `dict`
         A dictionary of commonly used metadata.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     obs_metadata = get_metadata(service="obs", params={"obs_id": obsid}, logger=logger)
     if obs_metadata is None:
@@ -177,18 +181,18 @@ def get_all_obsids(pagesize: int = 50, logger: logging.Logger = None) -> list:
 
     Parameters
     ----------
-    pagesize : int
+    pagesize : `int`
         Size of the page to query at a time.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
     Returns
     -------
-    obsids : list
+    obsids : `list`
         A list of the MWA observation IDs.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     legacy_params = {"mode": "VOLTAGE_START"}
     mwax_params = {"mode": "MWAX_VCS"}
@@ -202,9 +206,7 @@ def get_all_obsids(pagesize: int = 50, logger: logging.Logger = None) -> list:
         while len(temp) == pagesize or page == 1:
             params["page"] = page
             logger.debug(f"Page: {page}  params: {params}")
-            temp = get_metadata(
-                service="find", params=params, retry_http_error=True, logger=logger
-            )
+            temp = get_metadata(service="find", params=params, retry_http_error=True, logger=logger)
             # If there are no obs in the field (which is rare), None is returned
             if temp is not None:
                 for row in temp:
@@ -213,3 +215,53 @@ def get_all_obsids(pagesize: int = 50, logger: logging.Logger = None) -> list:
                 temp = []
             page += 1
     return obsids
+
+
+def check_obsid_cache(dir: str = None, root: str = "sf_obsid_cache") -> Optional[str]:
+    """Find the most recent obs ID cache file in a directory.
+
+    Parameters
+    ----------
+    dir : `str`, optional
+        The directory to search, by default the current directory
+    root : `str`, optional
+        The cache filename without the extension, by default "sf_obsid_cache"
+
+    Returns
+    -------
+    fn_path : `str`
+        The file path of the most recent cache file in the directory.
+    """
+    if dir is None:
+        dir = os.getcwd()
+    cache_files = []
+    for fn in os.listdir(dir):
+        fn_path = os.path.join(dir, fn)
+        fn_root = os.path.splitext(fn)[0]  # Remove the extension
+        if fn_root == root and os.path.isfile(fn_path):
+            # Valid cache file found
+            cache_files.append(fn)
+    if len(cache_files) > 0:
+        cache_files.sort(reverse=True)
+        fn_path = os.path.join(dir, cache_files[0])  # Most recent cache file
+        return fn_path
+    else:
+        return None
+
+
+def save_as_yaml(data_dict: dict, dir: str = None, root: str = "sf_obsid_cache") -> None:
+    """Save a dictionary as a yaml file.
+
+    Parameters
+    ----------
+    data_dict : `dict`
+        A dictionary to save.
+    dir : `str`, optional
+        The path to save the file to, by default the current directory.
+    root : `str`, optional
+        The filename without the extension, by default "sf_obsid_cache"
+    """
+    if dir is None:
+        dir = os.getcwd()
+    with open(os.path.join(dir, f"{root}.yaml"), "w") as yamlfile:
+        yaml.dump(data_dict, yamlfile)

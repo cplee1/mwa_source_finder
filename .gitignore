@@ -3,3 +3,5 @@ build/
 dist/
 tests/
 *.egg-info/
+.ruff_cache/
+*.yaml

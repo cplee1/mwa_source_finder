@@ -1,7 +1,7 @@
-import sys
 import argparse
+import sys
 
-from mwa_source_finder import logger_setup, finder, file_output, plotting, obs_planning
+import mwa_source_finder as sf
 
 
 def load_items_from_file(filename: str) -> list:
@@ -9,12 +9,12 @@ def load_items_from_file(filename: str) -> list:
 
     Parameters
     ----------
-    filename : str
+    filename : `str`
         The name of the file to read.
 
     Returns
     -------
-    list
+    valid_items : `list`
         A list of items stored as strings.
     """
     with open(filename, "r") as f:
@@ -31,16 +31,14 @@ def main():
     parser = argparse.ArgumentParser(
         usage="%(prog)s [options]",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        description="Code to find sources in MWA VCS observations.",
+        description="Find sources in MWA VCS observations.",
         add_help=False,
     )
-    loglevels = logger_setup.get_log_levels()
+    loglevels = sf.utils.get_log_levels()
 
     # Program arguments
     optional = parser.add_argument_group("Program arguments")
-    optional.add_argument(
-        "-h", "--help", action="help", help="Show this help information and exit."
-    )
+    optional.add_argument("-h", "--help", action="help", help="Show this help information and exit.")
     optional.add_argument(
         "-L",
         "--loglvl",
@@ -78,8 +76,7 @@ def main():
     # Observation arguments
     obs_args = parser.add_argument_group(
         "Observation arguments",
-        "Options to specify the observation(s) to search. The default is all VCS "
-        + "observations.",
+        "Options to specify the observation(s) to search. The default is all VCS " + "observations.",
     )
     obs_args.add_argument(
         "-o",
@@ -93,8 +90,7 @@ def main():
         "--obsids_file",
         type=str,
         default=None,
-        help="A file containing a list of obs IDs to search. Each obs ID should be "
-        + "listed on a new line.",
+        help="A file containing a list of obs IDs to search. Each obs ID should be " + "listed on a new line.",
     )
     obs_args.add_argument(
         "--start",
@@ -114,6 +110,11 @@ def main():
         help="Only search observations with data files available. "
         + "This will increase the time taken to obtain the metadata.",
     )
+    obs_args.add_argument(
+        "--no_cache",
+        action="store_true",
+        help="Do not read or write to the metadata cache.",
+    )
 
     # Functionality arguments
     finder_args = parser.add_argument_group(
@@ -130,9 +131,7 @@ def main():
         action="store_true",
         help="Force a search for sources in all obs IDs.",
     )
-    finder_args.add_argument(
-        "--dt", type=float, default=60, help="Step size in time for beam modelling."
-    )
+    finder_args.add_argument("--dt", type=float, default=60, help="Step size in time for beam modelling.")
     finder_args.add_argument(
         "--min_power",
         type=float,
@@ -167,8 +166,7 @@ def main():
     out_args.add_argument(
         "--beam_plot",
         action="store_true",
-        help="Make a plot of the source path through the beam for each obs ID/source "
-        + "combination.",
+        help="Make a plot of the source path through the beam for each obs ID/source " + "combination.",
     )
     out_args.add_argument(
         "--time_plot",
@@ -197,7 +195,7 @@ def main():
     args = parser.parse_args()
 
     # Initialise the logger
-    logger = logger_setup.get_logger(loglevels[args.loglvl])
+    logger = sf.utils.get_logger(log_level=loglevels[args.loglvl])
 
     # Input checking
     if (
@@ -209,8 +207,7 @@ def main():
     ):
         logger.error("No sources or observations specified.")
         logger.error(
-            "If you would like to search for all sources in all obs IDs, "
-            + "use the --source_for_all_obs option."
+            "If you would like to search for all sources in all obs IDs, " + "use the --source_for_all_obs option."
         )
         sys.exit(1)
 
@@ -223,16 +220,10 @@ def main():
     #     logger.error("'beam' normalisation mode is not yet implemented.")
     #     sys.exit(1)
 
-    if (
-        args.obsids is None
-        and args.obsids_file is None
-        and not args.obs_for_source
-        and not args.source_for_all_obs
-    ):
+    if args.obsids is None and args.obsids_file is None and not args.obs_for_source and not args.source_for_all_obs:
         logger.error("No obs IDs specified while in source-for-obs mode.")
         logger.error(
-            "If you would like to search for sources in all obs IDs, "
-            + "use the --source_for_all_obs option."
+            "If you would like to search for sources in all obs IDs, " + "use the --source_for_all_obs option."
         )
         sys.exit(1)
 
@@ -241,12 +232,10 @@ def main():
         sys.exit(1)
 
     if not args.obs_for_source and args.plan_obs_length:
-        logger.warning("The --plan_obs_length option will do nothing in "
-                       + "source-for-obs mode.")
-        
+        logger.warning("The --plan_obs_length option will do nothing in " + "source-for-obs mode.")
+
     if not args.obs_for_source and args.download_plan:
-        logger.warning("The --download_plan option will do nothing in "
-                       + "source-for-obs mode.")
+        logger.warning("The --download_plan option will do nothing in " + "source-for-obs mode.")
 
     # Get sources from command line, if specified
     if args.sources or args.sources_file:
@@ -263,7 +252,10 @@ def main():
 
     # Get obs IDs from command line, if specified
     if args.obsids or args.obsids_file:
-        obsids = args.obsids
+        if args.obsids:
+            obsids = [str(obsid) for obsid in args.obsids]
+        else:
+            obsids = []
         if args.obsids_file:
             logger.info(f"Parsing the provided obs ID list file: {args.obsids_file}")
             obsids_from_file = load_items_from_file(args.obsids_file)
@@ -280,7 +272,7 @@ def main():
         beam_coverage,
         pointings,
         all_obs_metadata,
-    ) = finder.find_sources_in_obs(
+    ) = sf.find_sources_in_obs(
         sources,
         obsids,
         args.start,
@@ -291,12 +283,13 @@ def main():
         norm_mode=norm_mode,
         min_power=args.min_power,
         freq_mode=args.freq_mode,
+        no_cache=args.no_cache,
         logger=logger,
     )
 
     if args.obs_for_source:
         if args.plan_obs_length is not None:
-            obs_plan = obs_planning.find_best_obs_times_for_sources(
+            obs_plan = sf.find_best_obs_times_for_sources(
                 pointings.keys(),
                 all_obs_metadata,
                 beam_coverage,
@@ -305,13 +298,11 @@ def main():
             )
 
             if args.download_plan:
-                obs_planning.plan_data_download(
-                    obs_plan, savename="download_plan.csv", logger=logger
-                )
+                sf.plan_data_download(obs_plan, savename="download_plan.csv", logger=logger)
         else:
             obs_plan = None
 
-        file_output.write_output_source_files(
+        sf.write_output_source_files(
             finder_results,
             all_obs_metadata,
             args.freq_mode,
@@ -321,7 +312,7 @@ def main():
             logger=logger,
         )
     else:
-        file_output.write_output_obs_files(
+        sf.write_output_obs_files(
             finder_results,
             all_obs_metadata,
             args.start,
@@ -332,7 +323,7 @@ def main():
         )
 
     if args.time_plot:
-        plotting.plot_power_vs_time(
+        sf.plot_power_vs_time(
             pointings.keys(),
             all_obs_metadata,
             beam_coverage,
@@ -344,13 +335,13 @@ def main():
     if args.beam_plot:
         # Ensure finder results are in source-for-obs format
         if args.obs_for_source:
-            obs_finder_results = file_output.invert_finder_results(finder_results)
+            obs_finder_results = sf.invert_finder_results(finder_results)
         else:
             obs_finder_results = finder_results
 
         for obsid in all_obs_metadata:
             obs_metadata = all_obs_metadata[obsid]
-            plotting.plot_beam_sky_map(
+            sf.plot_beam_sky_map(
                 obs_finder_results[obsid],
                 beam_coverage,
                 obs_metadata,

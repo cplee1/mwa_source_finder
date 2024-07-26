@@ -3,7 +3,13 @@ import logging
 import numpy as np
 from astropy.table import Table
 
-from mwa_source_finder import logger_setup
+import mwa_source_finder as sf
+
+__all__ = [
+    "write_output_source_files",
+    "write_output_obs_files",
+    "invert_finder_results",
+]
 
 
 def write_output_source_files(
@@ -14,26 +20,26 @@ def write_output_source_files(
     min_power: float,
     obs_plan: dict = None,
     logger: logging.Logger = None,
-):
+) -> None:
     """Write finder results for each source.
 
     Parameters
     ----------
-    finder_result : dict
+    finder_result : `dict`
         A dictionary containing the results organised by source.
-    obs_metadata_dict : dict
+    obs_metadata_dict : `dict`
         A dictionary of observation metadata dictionaries.
-    freq_mode: str
+    freq_mode : `str`
         The frequency mode used ['low', 'centre', 'high'].
-    norm_mode: str
+    norm_mode : `str`
         The beam normalisation mode used ['zenith', 'beam'].
-    min_power : float, optional
+    min_power : `float`, optional
         The minimum power to count as in the beam.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     for source in finder_result:
         if len(finder_result[source]) == 0:
@@ -67,7 +73,7 @@ def write_output_source_files(
             best_obsid = source_obs_plan["obsid"]
             start_t, stop_t = source_obs_plan["optimal_range"]
             gps_start_t = obs_metadata_dict[best_obsid]["start_t"]
-            
+
             obs_plan_str = (
                 "# Observation plan:\n"
                 + f"# Best obs          -- {best_obsid}\n"
@@ -114,28 +120,28 @@ def write_output_obs_files(
     norm_mode: str,
     min_power: float,
     logger: logging.Logger = None,
-):
+) -> None:
     """Write finder results for each observation.
 
     Parameters
     ----------
-    finder_result : dict
+    finder_result : `dict`
         A dictionary containing the results organised by observation ID.
-    obs_metadata_dict : dict
+    obs_metadata_dict : `dict`
         A dictionary of observation metadata dictionaries.
-    t_start: float
+    t_start : `float`
         Start time of the search, as a fraction of the full observation.
-    t_end: float
+    t_end : `float`
         End time of the search, as a fraction of the full observation.
-    norm_mode: str
+    norm_mode : `str`
         The beam normalisation mode used ['zenith', 'beam'].
-    min_power : float, optional
+    min_power : `float`, optional
         The minimum power to count as in the beam.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     for obsid in finder_result:
         if len(finder_result[obsid]) == 0:
@@ -161,8 +167,8 @@ def write_output_obs_files(
         data.write(out_file, format="ascii.fixed_width_two_line", overwrite=True)
 
         obs_metadata = obs_metadata_dict[obsid]
-        t_start_offset = t_start*obs_metadata['duration']
-        t_stop_offset = t_end*obs_metadata['duration']
+        t_start_offset = t_start * obs_metadata["duration"]
+        t_stop_offset = t_end * obs_metadata["duration"]
         divider_str = "# " + "-" * 78 + "\n"
         header = (
             divider_str
@@ -197,7 +203,22 @@ def write_output_obs_files(
             f.writelines(lines)
 
 
-def invert_finder_results(finder_results, obs_for_source=True):
+def invert_finder_results(finder_results: dict, obs_for_source: bool = True) -> dict:
+    """Invert the finder_results dictonary so that the heirarchy of obs IDs and
+    source names are swapped.
+
+    Parameters
+    ----------
+    finder_results : `dict`
+        A dictionary containing the finder results.
+    obs_for_source : `bool`, optional
+        If true, then the assumed heirarchy is (source, obsid), by default True.
+
+    Returns
+    -------
+    new_finder_results : `dict`
+        A dictionary containing the inverted finder results.
+    """
     new_finder_results = dict()
 
     if obs_for_source:
@@ -213,13 +234,9 @@ def invert_finder_results(finder_results, obs_for_source=True):
                     new_finder_results[obsid] = []
 
                 if len(obsid_data) == 4:
-                    new_finder_results[obsid].append(
-                        [source, enter_beam, exit_beam, max_power]
-                    )
+                    new_finder_results[obsid].append([source, enter_beam, exit_beam, max_power])
                 else:
-                    new_finder_results[obsid].append(
-                        [source, enter_beam, exit_beam, max_power, dur, fctr, bw]
-                    )
+                    new_finder_results[obsid].append([source, enter_beam, exit_beam, max_power, dur, fctr, bw])
     else:
         for obsid in finder_results:
             finder_result = finder_results[obsid]
@@ -227,8 +244,6 @@ def invert_finder_results(finder_results, obs_for_source=True):
                 source, enter_beam, exit_beam, max_power = source_data
                 if source not in new_finder_results:
                     new_finder_results[source] = []
-                new_finder_results[source].append(
-                    [obsid, enter_beam, exit_beam, max_power]
-                )
+                new_finder_results[source].append([obsid, enter_beam, exit_beam, max_power])
 
     return new_finder_results

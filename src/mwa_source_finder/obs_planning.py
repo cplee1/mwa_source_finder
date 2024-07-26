@@ -1,25 +1,32 @@
+import csv
 import logging
 from typing import Tuple
-import csv
 
 import numpy as np
 
-from mwa_source_finder import logger_setup
+import mwa_source_finder as sf
+
+__all__ = [
+    "plan_obs_times",
+    "find_best_obs_times_for_sources",
+    "plan_data_download",
+    "find_contiguous_ranges",
+]
 
 
-def round_down(time: float, chunksize: float = 8.) -> float:
+def _round_down(time: float, chunksize: float = 8.0) -> float:
     """Round the time down to the nearest multiple of the chunksize.
 
     Parameters
     ----------
-    time : float
+    time : `float`
         The time to round.
-    chunksize : float, optional
+    chunksize : `float`, optional
         The multiple to round to, in the same units as the time, by default 8.
 
     Returns
     -------
-    float
+    time : `float`
         The rounded time.
     """
     return time - (time % chunksize)
@@ -37,31 +44,28 @@ def plan_obs_times(
 
     Parameters
     ----------
-    obs_metadata : dict
+    obs_metadata : `dict`
         A dictionary of commonly used metadata.
-    power : np.ndarray
+    power : `np.ndarray`
         The source powers.
-    times : np.ndarray
+    times : `np.ndarray`
         The times of the powers from the start of the observation, in seconds.
-    obs_length : float
+    obs_length : `float`
         The desired observation length, in seconds.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
     Returns
     -------
-    Tuple[float, float]
-        A tuple containing the following:
-
-            start_t : float
-                The start time of the optimal observation, in seconds.
-            stop_t : float
-                The stop time of the optimal observation, in seconds.
-            peak_time float
-                The time of the peak power in the beam, in seconds.
+    start_t : `float`
+        The start time of the optimal observation, in seconds.
+    stop_t : `float`
+        The stop time of the optimal observation, in seconds.
+    peak_time : `float`
+        The time of the peak power in the beam, in seconds.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     # Unpack some metadata
     obsid = obs_metadata["obsid"]
@@ -119,29 +123,29 @@ def find_best_obs_times_for_sources(
 
     Parameters
     ----------
-    source_names : list
+    source_names : `list`
         A list of source names.
-    all_obs_metadata : dict
+    all_obs_metadata : `dict`
         A dictionary of metadata dictionaries.
-    beam_coverage : dict
+    beam_coverage : `dict`
         A dictionary of dictionaries organised by obs IDs then source names,
         with each source entry is a list containing the enter time, the exit
         time, and the maximum zenith-normalised power reached by the source in
         the beam, and an array of powers for each time step.
-    obs_length : float
+    obs_length : `float`
         The desired observation length, in seconds.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
     Returns
     -------
-    dict
+    obs_plan : `dict`
         A dictionary organised by source name, with each entry being a
         dictionary containing the obs ID, peak time, best start time, and best
         stop time, of the best observation.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     # The plan will be stored as a dictionary of source names
     obs_plan = dict()
@@ -154,9 +158,21 @@ def find_best_obs_times_for_sources(
         # Check for source beam coverage in all observations
         for obsid in all_obs_metadata:
             if source in beam_coverage[obsid]:
-                _, _, _, source_power, _ = beam_coverage[obsid][source]
+                _, _, _, powers, times = beam_coverage[obsid][source]
+                obs_metadata = all_obs_metadata[obsid]
+
+                # Find the best start/stop times for the observation
+                start_t, stop_t, peak_time = plan_obs_times(
+                    obs_metadata,
+                    powers,
+                    times,
+                    obs_length=obs_length,
+                    logger=logger,
+                )
+
+                peak_power_segment = powers[np.where(times > start_t) and np.where(times < stop_t)]
+                mean_powers.append(np.mean(peak_power_segment))
                 obsids.append(obsid)
-                mean_powers.append(np.mean(source_power))
 
         if len(mean_powers) == 0:
             logger.info(f"No obs IDs found for source {source}. Omitting from download plan.")
@@ -194,24 +210,24 @@ def plan_data_download(
 
     Parameters
     ----------
-    obs_plan : dict
+    obs_plan : `dict`
         A dictionary organised by source name, with each entry being a
         dictionary containing the obs ID, peak time, best start time, and best
         stop time, of the best observation.
-    savename : str, optional
+    savename : `str`, optional
         The name of the output csv file, by default None.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
     Returns
     -------
-    list
+    download_plans : `list`
         A list of tuples, each containing the obs ID, start time of the
         download, stop time of the download, and the sources within the
         downloaded data.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     # Get a list of unique obs IDs
     all_obsids = [obs_plan[source]["obsid"] for source in obs_plan]
@@ -229,8 +245,8 @@ def plan_data_download(
         contig_ranges = find_contiguous_ranges(source_beam_ranges[obsid], 600)
         for contig_range in contig_ranges:
             start_time, stop_time, sources = contig_range
-            start_time = round_down(start_time, 8)
-            stop_time = round_down(stop_time, 8)
+            start_time = _round_down(start_time, 8)
+            stop_time = _round_down(stop_time, 8)
             download_plans.append((obsid, start_time, stop_time, sources))
 
     # Write download plan to a csvfile
@@ -258,17 +274,17 @@ def find_contiguous_ranges(sources: list, min_gap: float) -> list:
 
     Parameters
     ----------
-    sources : list
+    sources : `list`
         A list of tuples, each containing the source name, the start of the
         time interval, and the end of the time interval.
-    min_gap : float
+    min_gap : `float`
         The minimum gap between two intervals to count them as non-contiguous.
         This is to ensure that downloads are separated enough to be worth
         splitting up.
 
     Returns
     -------
-    list
+    contig_ranges : `list`
         A list of tuples, each containing the start time of the contiguous
         time interval, the end time of the contiguous time interval, and the
         names of the sources within that interval.

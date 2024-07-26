@@ -1,33 +1,23 @@
 import logging
 
-import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
-from astropy.coordinates import SkyCoord, AltAz
-from astropy.time import Time
 import astropy.units as u
+import matplotlib as mpl
+import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
+import numpy as np
+from astropy.coordinates import AltAz, SkyCoord
+from astropy.time import Time
 
-from mwa_source_finder import logger_setup, coord_utils, beam_utils
+import mwa_source_finder as sf
 
 plt.rcParams["mathtext.fontset"] = "dejavuserif"
 plt.rcParams["font.family"] = "serif"
 plt.rcParams["font.size"] = 12
 
-
-LINE_STYLES = [
-    "-",
-    "--",
-    "-.",
-    ":",
-    (0, (5, 1, 1, 1, 1, 1)),
-    (0, (5, 1, 1, 1, 1, 1, 1, 1)),
-    (0, (5, 1, 5, 1, 1, 1)),
-    (0, (5, 1, 5, 1, 1, 1, 1, 1)),
-    (0, (5, 1, 5, 1, 5, 1, 1, 1)),
-    (0, (5, 1, 5, 1, 5, 1, 1, 1, 1, 1)),
-    (0, (5, 1, 1, 1, 5, 1, 5, 1, 1, 1)),
-    (0, (5, 1, 1, 1, 5, 1, 1, 1, 1, 1)),
+__all__ = [
+    "setup_axis",
+    "plot_power_vs_time",
+    "plot_beam_sky_map",
 ]
 
 
@@ -52,32 +42,32 @@ def plot_power_vs_time(
     min_power: float,
     obs_for_source: bool = False,
     logger: logging.Logger = None,
-):
+) -> None:
     """Make a plot of power vs time showing each obs ID for a source.
 
     Parameters
     ----------
-    source_names : list
+    source_names : `list`
         A list of source names.
-    all_obs_metadata : dict
+    all_obs_metadata : `dict`
         A dictionary of metadata dictionaries.
-    beam_coverage : dict
+    beam_coverage : `dict`
         A dictionary of dictionaries organised by obs IDs then source names,
         with each source entry is a list containing the enter time, the exit
         time, and the maximum zenith-normalised power reached by the source in
         the beam, and an array of powers for each time step.
-    min_power : float
+    min_power : `float`
         The minimum power to count as in the beam.
-    obs_for_source : bool, optional
+    obs_for_source : `bool`, optional
         Whether to search for observations for each source, by default False.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
     line_combos = []
-    for lsi in LINE_STYLES:
+    for lsi in sf.LINE_STYLES:
         for coli in list(mcolors.TABLEAU_COLORS):
             line_combos.append([lsi, coli])
 
@@ -99,11 +89,9 @@ def plot_power_vs_time(
 
                     # Plot powers
                     if ii >= len(line_combos):
-                        logger.error(
-                            f"Source {source_name}: Too many obs IDs to make a power vs time plot. Skipping."
-                        )
+                        logger.error(f"Source {source_name}: Too many obs IDs to make a power vs time plot. Skipping.")
                         return
-                
+
                     ax.errorbar(
                         times,
                         powers,
@@ -150,9 +138,7 @@ def plot_power_vs_time(
 
                 # Plot powers
                 if ii >= len(line_combos):
-                    logger.error(
-                        f"Obs ID {obsid}: Too many sources to make a power vs time plot. Skipping."
-                    )
+                    logger.error(f"Obs ID {obsid}: Too many sources to make a power vs time plot. Skipping.")
                     return
 
                 ax.errorbar(
@@ -197,35 +183,35 @@ def plot_beam_sky_map(
     min_power: float,
     norm_to_zenith: bool = True,
     logger: logging.Logger = None,
-):
-    """_summary_
+) -> None:
+    """Plot a figure showing the beam power and power vs time.
 
     Parameters
     ----------
-    obs_finder_result : list
+    obs_finder_result : `list`
         The finder result for a particular obs ID. A list of lists containing
         the source name as the first entry.
-    beam_coverage : dict
+    beam_coverage : `dict`
         A dictionary of dictionaries organised by obs IDs then source names,
         with each source entry is a list containing the enter time, the exit
         time, and the maximum zenith-normalised power reached by the source in
         the beam, and an array of powers for each time step.
-    obs_metadata : dict
+    obs_metadata : `dict`
         A dictionary of commonly used metadata.
-    pointings : dict
+    pointings : `dict`
         A dictionary of dictionaries containing pointing information, organised
         by source name.
-    min_power : float
+    min_power : `float`
         The minimum power to count as in the beam.
-    norm_to_zenith : bool, optional
+    norm_to_zenith : `bool`, optional
         Whether to normalise the powers to zenith, by default True.
-    logger : logging.Logger, optional
+    logger : `logging.Logger`, optional
         A custom logger to use, by default None.
     """
     if logger is None:
-        logger = logger_setup.get_logger()
+        logger = sf.utils.get_logger()
 
-    az, za, powers = beam_utils.get_beam_power_sky_map(
+    az, za, powers = sf.get_beam_power_sky_map(
         obs_metadata,
         norm_to_zenith=norm_to_zenith,
         logger=logger,
@@ -235,7 +221,7 @@ def plot_beam_sky_map(
     start_t = Time(obs_metadata["start_t"], format="gps")
     end_t = Time(obs_metadata["stop_t"], format="gps")
     source_dt = np.linspace(-3600, obs_metadata["duration"] + 3600, 50) * u.s
-    obs_frame = AltAz(obstime=start_t + source_dt, location=coord_utils.TEL_LOCATION)
+    obs_frame = AltAz(obstime=start_t + source_dt, location=sf.TEL_LOCATION)
 
     # Get sky coordinates for found pulsars
     found_sources = [entry[0] for entry in obs_finder_result]
@@ -279,9 +265,7 @@ def plot_beam_sky_map(
         )
 
         # Plot power contours
-        ax_2D.contour(
-            az, za, powers, contour_levels, colors="k", linewidths=1, zorder=1e2
-        )
+        ax_2D.contour(az, za, powers, contour_levels, colors="k", linewidths=1, zorder=1e2)
 
         # Plot source paths through beam
         for altaz_step in source_altaz:
@@ -308,12 +292,7 @@ def plot_beam_sky_map(
         ax_2D.set_theta_direction(-1)
         ax_2D.grid(ls=":", color="0.5")
         ax_2D.set_yticks(np.radians([15, 35, 55, 75]))
-        ax_2D.set_yticklabels(
-            [
-                rf"${int(x)}^{{\degree}}$"
-                for x in np.round(np.degrees(ax_2D.get_yticks()), 0)
-            ]
-        )
+        ax_2D.set_yticklabels([rf"${int(x)}^{{\degree}}$" for x in np.round(np.degrees(ax_2D.get_yticks()), 0)])
         ax_2D.set_xlabel("Azimuth angle [deg]", labelpad=5)
         ax_2D.set_ylabel("Zenith angle [deg]", labelpad=30)
         ax_2D.tick_params(labelsize=10)
