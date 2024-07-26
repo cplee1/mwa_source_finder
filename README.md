@@ -29,7 +29,7 @@ place to start to see how the package is used.
 
 ## CLI Usage
 Once installed, the CLI can be accessed with `source-finder`. Refer to the help
-menu (`source-finder -h`) for details on its usage and the option defaults.
+menu (`-h`) for details on its usage and the option defaults.
 
 The basic usage is as follows. The options in square brackets are the plot types
 available. To search for all pulsars in an observation, run
