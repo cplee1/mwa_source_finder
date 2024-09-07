@@ -66,7 +66,6 @@ def get_metadata(
     wait_time = 30
     result = None
     for _ in range(0, retries):
-        err = False
         try:
             result = json.load(urllib.request.urlopen(BASEURL + servicetype + "/" + service + "?" + data))
         except urllib.error.HTTPError as err:
