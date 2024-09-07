@@ -1,24 +1,25 @@
 [project]
-name = "mwa_source_finder"
+name = "mwa-source-finder"
 version = "0.2.0"
-description = "Find sources in MWA observations."
+description = "Find sources in MWA observations"
 authors = [
-    { name = "Christopher Lee", email = "christopher.lee@icrar.org" },
+    { name = "Christopher Lee" },
     { name = "Nick Swainston" },
     { name = "Bradley Meyers" },
 ]
 license = { file = "LICENSE" }
 readme = { file = "README.md", content-type = "text/markdown" }
-requires-python = ">= 3.7"
+requires-python = ">= 3.8"
 dependencies = [
-    "numpy >= 1.17.0",
-    "matplotlib >= 3.5",
-    "astropy",
-    "pyyaml",
-    "psrqpy >= 1.2.7",
-    "mwa-hyperbeam",
-    "tqdm",
-    "ruff",
+    "astropy>=5.2.2",
+    "matplotlib>=3.7.5",
+    "mwa-hyperbeam>=0.9.4",
+    "numpy>=1.24.4",
+    "psrqpy>=1.2.10",
+    "pyyaml>=6.0.2",
+    "ruff>=0.6.4",
+    "scipy>=1.10.1",
+    "tqdm>=4.66.5",
 ]
 
 [project.scripts]
