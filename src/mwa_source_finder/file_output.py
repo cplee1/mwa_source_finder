@@ -148,19 +148,23 @@ def write_output_obs_files(
             continue
         obs_data = np.array(finder_result[obsid])
         data = Table(
-            names=["Name", "Enter", "Exit", "Power"],
-            dtype=[str, float, float, float],
+            names=["Name", "Enter", "Exit", "Power", "DM", "P0"],
+            dtype=[str, float, float, float, float, float],
             descriptions=[
                 "Source name",
                 "The fraction of the observation when the source enters the beam",
                 "The fraction of the observation when the source exits the beam",
                 "The maximum power of the source",
+                "Dispersion measure [pc/cm^3]",
+                "Pulsar spin period [ms]",
             ],
             rows=obs_data,
         )
         data["Enter"].format = "%.3f"
         data["Exit"].format = "%.3f"
         data["Power"].format = "%.3f"
+        data["DM"].format = "%.3f"
+        data["P0"].format = "%.3f"
 
         out_file = f"{obsid}_sources.txt"
         logger.info(f"Saving output file: {out_file}")
@@ -192,6 +196,8 @@ def write_output_obs_files(
             + "# Enter -- The fraction of the time range when the source enters the beam\n"
             + "# Exit  -- The fraction of the time range when the source exits the beam\n"
             + "# Power -- The maximum beam power towards the source within the time range\n"
+            + "# DM    -- Dispersion measure [pc/cm^3]\n"
+            + "# P0    -- Pulsar spin period [ms]\n"
             + divider_str
             + "\n"
         )

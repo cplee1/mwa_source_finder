@@ -72,6 +72,12 @@ def main():
         help="A file containing a list of sources to find. Each source should be "
         + "listed on a new line. The source format is the same as the -s option.",
     )
+    source_args.add_argument(
+        "--condition",
+        type=str,
+        default=None,
+        help="A string of logical parameter conditions to pass to the pulsar " + "catalogue when submitting a query.",
+    )
 
     # Observation arguments
     obs_args = parser.add_argument_group(
@@ -283,6 +289,7 @@ def main():
         args.start,
         args.end,
         obs_for_source=args.obs_for_source,
+        condition=args.condition,
         filter_available=args.filter_available,
         input_dt=args.dt,
         norm_mode=norm_mode,
