@@ -331,6 +331,7 @@ def main():
             args.end,
             norm_mode,
             args.min_power,
+            args.condition,
             logger=logger,
         )
 

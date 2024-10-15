@@ -119,6 +119,7 @@ def write_output_obs_files(
     t_end: float,
     norm_mode: str,
     min_power: float,
+    condition: str = None,
     logger: logging.Logger = None,
 ) -> None:
     """Write finder results for each observation.
@@ -137,6 +138,8 @@ def write_output_obs_files(
         The beam normalisation mode used ['zenith', 'beam'].
     min_power : `float`, optional
         The minimum power to count as in the beam.
+    condition : `str`, optional
+        The condition passed to the pulsar catalogue, by default None.
     logger : `logging.Logger`, optional
         A custom logger to use, by default None.
     """
@@ -190,6 +193,7 @@ def write_output_obs_files(
             + f"# Frequency         -- {obs_metadata['evalfreq']/1e6:.2f} MHz\n"
             + f"# Beam norm         -- {norm_mode}\n"
             + f"# Min norm power    -- {min_power:.2f}\n"
+            + f"# PSRCAT condition  -- {condition}\n"
             + divider_str
             + "# Column headers:\n"
             + "# Name  -- Source name\n"
