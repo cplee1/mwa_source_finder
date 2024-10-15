@@ -35,6 +35,46 @@ def setup_axis(ax, duration, fontsize=12):
     ax.set_ylabel("Zenith-normalised beam power")
 
 
+def get_source_path(
+    start_t_abs: Time,
+    start_t_rel: float,
+    end_t_rel: float,
+    source_radec: AltAz,
+    num_points: int = 50,
+) -> np.ndarray:
+    """Compute the path of a source in Alt/ZA coordinates.
+
+    Parameters
+    ----------
+    start_t_abs : `astropy.time.Time`
+        A Time object defining the absolute start time of the observation.
+    start_t_rel : `float`
+        The start second of the path, relative to the start second of the
+        observation.
+    end_t_rel : `float`
+        The end second of the path, relative to the start second of the
+        observation.
+    source_radec : `astropy.coordinates.SkyCoord`
+        A SkyCoord object defining the RA/Dec coordinates of the source.
+    num_points : `int`, optional
+        The number of points in the path, by default 50.
+
+    Returns
+    -------
+    altaz_path : `np.ndarray`
+        A (2, num_points) array containing the Alt/ZA coordinates of the source
+        in radians.
+    """
+    source_dt = np.linspace(start_t_rel, end_t_rel, num_points) * u.s
+    obs_frame = AltAz(obstime=start_t_abs + source_dt, location=sf.TEL_LOCATION)
+    source_altaz = source_radec.transform_to(obs_frame)
+    altaz_path = np.empty((2, len(source_altaz)))
+    for ii, altaz_step in enumerate(source_altaz):
+        altaz_path[0, ii] = altaz_step.az.rad
+        altaz_path[1, ii] = np.pi / 2 - altaz_step.alt.rad
+    return altaz_path
+
+
 def plot_power_vs_time(
     source_names: list,
     all_obs_metadata: dict,
@@ -219,9 +259,6 @@ def plot_beam_sky_map(
 
     # Compute the timestep frames
     start_t = Time(obs_metadata["start_t"], format="gps")
-    end_t = Time(obs_metadata["stop_t"], format="gps")
-    source_dt = np.linspace(-3600, obs_metadata["duration"] + 3600, 50) * u.s
-    obs_frame = AltAz(obstime=start_t + source_dt, location=sf.TEL_LOCATION)
 
     # Get sky coordinates for found pulsars
     found_sources = [entry[0] for entry in obs_finder_result]
@@ -241,7 +278,9 @@ def plot_beam_sky_map(
     contour_levels = [0.01, 0.1, 0.5, 0.9]
 
     for source_name, source_radec in zip(source_names, source_coords):
-        source_altaz = source_radec.transform_to(obs_frame)
+        path0 = get_source_path(start_t, -3600, 0, source_radec)
+        path1 = get_source_path(start_t, 0, obs_metadata["duration"], source_radec)
+        path2 = get_source_path(start_t, obs_metadata["duration"], obs_metadata["duration"] + 3600, source_radec)
 
         # Figure setup
         fig = plt.figure(figsize=(6, 7.5), dpi=150)
@@ -268,23 +307,14 @@ def plot_beam_sky_map(
         ax_2D.contour(az, za, powers, contour_levels, colors="k", linewidths=1, zorder=1e2)
 
         # Plot source paths through beam
-        for altaz_step in source_altaz:
-            if altaz_step.obstime < start_t:
-                path_color = "lightpink"
-                zorder_boost = 0
-            elif altaz_step.obstime > end_t:
-                path_color = "lightskyblue"
-                zorder_boost = 0
-            else:
-                path_color = "r"
-                zorder_boost = 1
+        for path, ls in zip([path0, path1, path2], [(1,(1,1)), "-", (0,(1,1))]):
             ax_2D.errorbar(
-                altaz_step.az.rad,
-                np.pi / 2 - altaz_step.alt.rad,
-                fmt="o",
-                ms=2,
-                c=path_color,
-                zorder=1e6 + zorder_boost,
+                path[0,:],
+                path[1,:],
+                ls=ls,
+                lw=1.7,
+                c="k",
+                zorder=1e6,
                 rasterized=True,
             )
 
