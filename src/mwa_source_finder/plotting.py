@@ -307,10 +307,10 @@ def plot_beam_sky_map(
         ax_2D.contour(az, za, powers, contour_levels, colors="k", linewidths=1, zorder=1e2)
 
         # Plot source paths through beam
-        for path, ls in zip([path0, path1, path2], [(1,(1,1)), "-", (0,(1,1))]):
+        for path, ls in zip([path0, path1, path2], [(1, (1, 1)), "-", (0, (1, 1))]):
             ax_2D.errorbar(
-                path[0,:],
-                path[1,:],
+                path[0, :],
+                path[1, :],
                 ls=ls,
                 lw=1.7,
                 c="k",

@@ -131,7 +131,12 @@ def main():
         action="store_true",
         help="Force a search for sources in all obs IDs.",
     )
-    finder_args.add_argument("--dt", type=float, default=60, help="Step size in time for beam modelling.")
+    finder_args.add_argument(
+        "--dt",
+        type=float,
+        default=60,
+        help="Step size in time for beam modelling.",
+    )
     finder_args.add_argument(
         "--min_power",
         type=float,
