@@ -308,11 +308,11 @@ def plot_beam_sky_map(
 
         # Plot source paths through beam
         for path, ls, col, lab in zip(
-                [path0, path1, path2],
-                ["-", "-", "-"],
-                ["lightpink", "r", "lightskyblue"],
-                ["1 h before", "Observation", "1 h after"],
-            ):
+            [path0, path1, path2],
+            ["-", "-", "-"],
+            ["lightpink", "r", "lightskyblue"],
+            ["1 h before", "Observation", "1 h after"],
+        ):
             ax_2D.errorbar(
                 path[0, :],
                 path[1, :],
