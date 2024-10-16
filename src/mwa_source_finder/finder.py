@@ -86,6 +86,7 @@ def find_sources_in_obs(
 
     if sources is not None:
         # Convert source list to pointing list
+        logger.info("Parsing pointings provided by user...")
         pointings = sf.utils.get_pointings(sources, condition=condition, logger=logger)
         # Print out a full list of sources
         logger.info(f"{len(pointings)} pointings parsed sucessfully")

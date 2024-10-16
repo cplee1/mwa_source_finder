@@ -265,11 +265,12 @@ def main():
     if args.obsids or args.obsids_file:
         if args.obsids:
             obsids = [str(obsid) for obsid in args.obsids]
+            logger.info(f"{len(obsids)} obs IDs parsed from command line")
         else:
             obsids = []
         if args.obsids_file:
-            logger.info(f"Parsing the provided obs ID list file: {args.obsids_file}")
             obsids_from_file = load_items_from_file(args.obsids_file)
+            logger.info(f"{len(obsids_from_file)} obs IDs parsed from file: {args.obsids_file}")
             if obsids:
                 obsids += obsids_from_file
             else:
