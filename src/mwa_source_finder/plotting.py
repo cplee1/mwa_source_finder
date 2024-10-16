@@ -284,7 +284,7 @@ def plot_beam_sky_map(
 
         # Figure setup
         fig = plt.figure(figsize=(6, 7.5), dpi=150)
-        fig.suptitle(f"Obs ID: {obs_metadata['obsid']}   Source: {source_name}", y=0.95)
+        fig.suptitle(f"Obs ID: {obs_metadata['obsid']}   Source: {source_name}", y=1.02)
         gs = mpl.gridspec.GridSpec(2, 1, hspace=0.2, height_ratios=[3, 1])
 
         # Polar plot
@@ -307,16 +307,29 @@ def plot_beam_sky_map(
         ax_2D.contour(az, za, powers, contour_levels, colors="k", linewidths=1, zorder=1e2)
 
         # Plot source paths through beam
-        for path, ls in zip([path0, path1, path2], [(1, (1, 1)), "-", (0, (1, 1))]):
+        for path, ls, col, lab in zip(
+                [path0, path1, path2],
+                ["-", "-", "-"],
+                ["lightpink", "r", "lightskyblue"],
+                ["1 h before", "Observation", "1 h after"],
+            ):
             ax_2D.errorbar(
                 path[0, :],
                 path[1, :],
                 ls=ls,
-                lw=1.7,
-                c="k",
+                lw=2.5,
+                c=col,
                 zorder=1e6,
                 rasterized=True,
+                label=lab,
             )
+        fig.legend(
+            loc="upper center",
+            bbox_to_anchor=(0.48, 0.975),
+            fancybox=True,
+            shadow=True,
+            ncol=3,
+        )
 
         ax_2D.set_theta_zero_location("N")
         ax_2D.set_theta_direction(-1)
