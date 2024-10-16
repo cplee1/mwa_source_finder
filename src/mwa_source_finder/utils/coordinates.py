@@ -273,11 +273,11 @@ def get_pulsar_coords(
             pulsar = query["PSRJ"][pid]
         except ValueError:
             logger.error(f"Pulsar not found in catalogue: {pulsar}")
-            return None, None, None, None
+            return None, None, None, None, None, None
     # Check if pulsar is in the catalogue
     if pulsar not in list(query["PSRJ"]):
         logger.error(f"Pulsar not found in catalogue: {pulsar}")
-        return None, None, None, None
+        return None, None, None, None, None, None
     # Get coordinates from the query
     psrs = query.get_pulsars()
     raj = psrs[pulsar].RAJ
