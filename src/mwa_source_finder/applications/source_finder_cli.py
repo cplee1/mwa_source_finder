@@ -183,13 +183,12 @@ def main():
     out_args.add_argument(
         "--beam_plot",
         action="store_true",
-        help="Make a plot of the source path through the beam for each obs ID/source "
-        + "combination.",
+        help="Make a plot of the source path through the beam for each obs ID/source combination.",
     )
     out_args.add_argument(
         "--ms_beam_plot",
         action="store_true",
-        help="Make a plot of the source paths through the beam for each obs ID."
+        help="Make a plot of the source paths through the beam for each obs ID.",
     )
     out_args.add_argument(
         "--plan_obs_length",

@@ -456,7 +456,7 @@ def plot_multisource_beam_sky_map(
     gs01 = gs0[1].subgridspec(2, 1, hspace=0, height_ratios=[1, 4])
     gs010 = gs01[0]
     gs011 = gs01[1]
-    
+
     ax_2D = fig.add_subplot(gs00, projection="polar")
     ax_shade = fig.add_subplot(gs010)
     ax_1D = fig.add_subplot(gs011)
@@ -481,7 +481,7 @@ def plot_multisource_beam_sky_map(
     for ii, source_radec in enumerate(source_coords):
         path0 = get_source_path(start_t, -3600, 0, source_radec)
         path1 = get_source_path(start_t, 0, obs_metadata["duration"], source_radec)
-        path2 = get_source_path(start_t, obs_metadata["duration"], obs_metadata["duration"] + 3600, source_radec)      
+        path2 = get_source_path(start_t, obs_metadata["duration"], obs_metadata["duration"] + 3600, source_radec)
 
         # Plot source paths through beam
         for path, ls, col, lab in zip(
@@ -532,7 +532,7 @@ def plot_multisource_beam_sky_map(
             power_dt,
             source_power,
             fmt="-",
-            c=cols[ii%5],
+            c=cols[ii % 5],
             lw=2,
         )
 
@@ -548,8 +548,8 @@ def plot_multisource_beam_sky_map(
             [0, 1],
             start_t,
             stop_t,
-            color=cols[ii%5],
-            hatch=hatches[ii%3],
+            color=cols[ii % 5],
+            hatch=hatches[ii % 3],
             alpha=0.3,
         )
 
@@ -571,14 +571,14 @@ def plot_multisource_beam_sky_map(
     ax_1D.grid(ls=":", color="0.5")
     ax_1D.tick_params(labelsize=10)
 
-    ax_shade.set_ylim([0,1])
+    ax_shade.set_ylim([0, 1])
     ax_shade.set_xlim([0, obs_metadata["duration"]])
     ax_shade.set_xticks([])
     ax_shade.set_yticks([])
 
     fig_name = f"{obs_metadata['obsid']}_multisource_sky_beam_power"
     logger.info(f"Saving plot file: {fig_name}.png")
-    plt.savefig(fig_name+".png", bbox_inches="tight")
+    plt.savefig(fig_name + ".png", bbox_inches="tight")
     logger.info(f"Saving plot file: {fig_name}.pdf")
-    plt.savefig(fig_name+".pdf", bbox_inches="tight")
+    plt.savefig(fig_name + ".pdf", bbox_inches="tight")
     plt.close()
