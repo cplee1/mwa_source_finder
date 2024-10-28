@@ -1,6 +1,6 @@
 [project]
 name = "mwa-source-finder"
-version = "0.3.2"
+version = "0.3.3"
 description = "Find sources in MWA observations"
 authors = [
     { name = "Christopher Lee" },
