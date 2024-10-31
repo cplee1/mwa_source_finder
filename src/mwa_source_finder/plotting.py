@@ -118,7 +118,7 @@ def plot_power_vs_time(
             ii = 0
             max_duration = 0
 
-            fig = plt.figure(figsize=(8, 4), dpi=300)
+            fig = plt.figure(figsize=(8, 4), dpi=200)
             ax = fig.add_subplot(111)
 
             for obsid in all_obs_metadata:
@@ -171,7 +171,7 @@ def plot_power_vs_time(
             ii = 0
             max_duration = all_obs_metadata[obsid]["duration"]
 
-            fig = plt.figure(figsize=(8, 4), dpi=300)
+            fig = plt.figure(figsize=(8, 4), dpi=200)
             ax = fig.add_subplot(111)
 
             for source_name in beam_coverage[obsid]:
@@ -284,7 +284,7 @@ def plot_beam_sky_map(
         path2 = get_source_path(start_t, obs_metadata["duration"], obs_metadata["duration"] + 3600, source_radec)
 
         # Figure setup
-        fig = plt.figure(figsize=(6, 7.5), dpi=150)
+        fig = plt.figure(figsize=(6, 7.5), dpi=200)
         fig.suptitle(f"Obs ID: {obs_metadata['obsid']}   Source: {source_name}", y=1.02)
         gs = mpl.gridspec.GridSpec(2, 1, hspace=0.2, height_ratios=[3, 1])
 
@@ -579,6 +579,5 @@ def plot_multisource_beam_sky_map(
     fig_name = f"{obs_metadata['obsid']}_multisource_sky_beam_power"
     logger.info(f"Saving plot file: {fig_name}.png")
     plt.savefig(fig_name + ".png", bbox_inches="tight")
-    logger.info(f"Saving plot file: {fig_name}.pdf")
-    plt.savefig(fig_name + ".pdf", bbox_inches="tight")
+
     plt.close()
