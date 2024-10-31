@@ -237,7 +237,7 @@ def equatorial_to_horizontal(
 def get_pulsar_coords(
     pulsar: str, query: psrqpy.QueryATNF, logger: logging.Logger = None
 ) -> Tuple[str, str, float, float]:
-    """Get pulsar coordinates from a psrqpy query.
+    """Get pulsar coordinates, period, and DM from a psrqpy query.
 
     Parameters
     ----------
@@ -258,6 +258,10 @@ def get_pulsar_coords(
         The J2000 right ascension in decimal degrees.
     decjd : `float`
         The J2000 declination in decimal degrees.
+    dm : `float`
+        The dispersion measure in pc/cm^3.
+    p0 : `float`
+        The pulsar spin period in ms.
     """
     if logger is None:
         logger = sf.utils.get_logger()
@@ -269,18 +273,20 @@ def get_pulsar_coords(
             pulsar = query["PSRJ"][pid]
         except ValueError:
             logger.error(f"Pulsar not found in catalogue: {pulsar}")
-            return None, None, None, None
+            return None, None, None, None, None, None
     # Check if pulsar is in the catalogue
     if pulsar not in list(query["PSRJ"]):
         logger.error(f"Pulsar not found in catalogue: {pulsar}")
-        return None, None, None, None
+        return None, None, None, None, None, None
     # Get coordinates from the query
     psrs = query.get_pulsars()
     raj = psrs[pulsar].RAJ
     decj = psrs[pulsar].DECJ
-    rajd = psrs[pulsar].rajd
+    rajd = psrs[pulsar].RAJD
     decjd = psrs[pulsar].DECJD
-    return raj, decj, rajd, decjd
+    dm = psrs[pulsar].DM
+    p0 = psrs[pulsar].P0 * 1e3
+    return raj, decj, rajd, decjd, dm, p0
 
 
 def interpret_coords(coords: str, logger: logging.Logger = None) -> Tuple[str, str, float, float]:
@@ -343,13 +349,15 @@ def interpret_coords(coords: str, logger: logging.Logger = None) -> Tuple[str, s
     return raj, decj, rajd, decjd
 
 
-def get_pointings(sources: list, logger: logging.Logger = None) -> dict:
+def get_pointings(sources: list, condition: str = None, logger: logging.Logger = None) -> dict:
     """Get source pointing information and store it in dictionary format.
 
     Parameters
     ----------
     sources : `list`
         A list of source names.
+    condition : `str`, optional
+        A condition to pass to the pulsar catalogue, by default None.
     logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
@@ -372,30 +380,35 @@ def get_pointings(sources: list, logger: logging.Logger = None) -> dict:
     # If required, query the catalogue
     if query_flag:
         logger.debug("Querying the pulsar catalogue")
-        query = psrqpy.QueryATNF(params=["PSRJ", "PSRB", "RAJ", "DECJ", "RAJD", "DECJD"])
+        query = psrqpy.QueryATNF(
+            params=["PSRJ", "PSRB", "RAJ", "DECJ", "RAJD", "DECJD", "DM", "P0"], condition=condition
+        )
         logger.info(f"Using ATNF pulsar catalogue version {query.get_version}")
     # Loop through all sources, get pointings and add them to dictionaries
     for source in sources:
         if source.startswith(("J", "B")):
             logger.debug(f'Treating "{source}" as a pulsar')
-            raj, decj, rajd, decjd = get_pulsar_coords(source, query, logger=logger)
+            raj, decj, rajd, decjd, dm, p0 = get_pulsar_coords(source, query, logger=logger)
         elif "_" in source:
             logger.debug(f'Treating "{source}" as coordinates')
             raj, decj, rajd, decjd = interpret_coords(source, logger=logger)
+            dm, p0 = None, None
         else:
             logger.error(f"Source not recognised: {source}")
         if raj is None:
             continue
-        pointing = dict(name=source, RAJ=raj, DECJ=decj, RAJD=rajd, DECJD=decjd)
+        pointing = dict(name=source, RAJ=raj, DECJ=decj, RAJD=rajd, DECJD=decjd, DM=dm, P0=p0)
         pointings[source] = pointing
     return pointings
 
 
-def get_atnf_pulsars(logger: logging.Logger = None) -> dict:
+def get_atnf_pulsars(condition: str = None, logger: logging.Logger = None) -> dict:
     """Get source pointing information from the ATNF pulsar catalogue.
 
     Parameters
     ----------
+    condition : `str`, optional
+        A condition to pass to the pulsar catalogue, by default None.
     logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
@@ -409,18 +422,20 @@ def get_atnf_pulsars(logger: logging.Logger = None) -> dict:
         logger = sf.utils.get_logger()
 
     logger.debug("Querying the pulsar catalogue")
-    query = psrqpy.QueryATNF(params=["PSRJ", "RAJ", "DECJ", "RAJD", "DECJD"])
+    query = psrqpy.QueryATNF(params=["PSRJ", "RAJ", "DECJ", "RAJD", "DECJD", "DM", "P0"], condition=condition)
     logger.info(f"Using ATNF pulsar catalogue version {query.get_version}")
     psrjs = list(query.table["PSRJ"])
     rajs = list(query.table["RAJ"])
     decjs = list(query.table["DECJ"])
     rajds = list(query.table["RAJD"])
     decjds = list(query.table["DECJD"])
+    dms = list(query.table["DM"])
+    p0s = list(query.table["P0"] * 1e3)
     # Loop through all the pulsars and store the pointings in dictionaries
     pointings = dict()
-    for psrj, raj, decj, rajd, decjd in zip(psrjs, rajs, decjs, rajds, decjds):
+    for psrj, raj, decj, rajd, decjd, dm, p0 in zip(psrjs, rajs, decjs, rajds, decjds, dms, p0s):
         raj = _format_sexigesimal(raj, logger=logger)
         decj = _format_sexigesimal(decj, add_sign=True, logger=logger)
-        pointing = dict(name=psrj, RAJ=raj, DECJ=decj, RAJD=rajd, DECJD=decjd)
+        pointing = dict(name=psrj, RAJ=raj, DECJ=decj, RAJD=rajd, DECJD=decjd, DM=dm, P0=p0)
         pointings[psrj] = pointing
     return pointings

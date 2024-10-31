@@ -16,6 +16,7 @@ def find_sources_in_obs(
     t_start: float = 0.0,
     t_end: float = 1.0,
     obs_for_source: bool = False,
+    condition: str = None,
     filter_available: bool = False,
     input_dt: float = 60.0,
     norm_mode: str = "zenith",
@@ -39,6 +40,8 @@ def find_sources_in_obs(
         The end time to search, as a fraction of the full observation.
     obs_for_source : `bool`, optional
         Whether to search for observations for each source, by default False.
+    condition : `str`, optional
+        A condition to pass to the pulsar catalogue, by default None.
     filter_available : `bool`, optional
         Only search observations with data files available, by default False.
     input_dt : `float`, optional
@@ -83,7 +86,8 @@ def find_sources_in_obs(
 
     if sources is not None:
         # Convert source list to pointing list
-        pointings = sf.utils.get_pointings(sources, logger=logger)
+        logger.info("Parsing pointings provided by user...")
+        pointings = sf.utils.get_pointings(sources, condition=condition, logger=logger)
         # Print out a full list of sources
         logger.info(f"{len(pointings)} pointings parsed sucessfully")
         for source_name in pointings:
@@ -93,7 +97,7 @@ def find_sources_in_obs(
             )
     else:
         logger.info("Collecting pulsars from the ATNF catalogue...")
-        pointings = sf.utils.get_atnf_pulsars(logger=logger)
+        pointings = sf.utils.get_atnf_pulsars(condition=condition, logger=logger)
         logger.info(f"{len(pointings)} pulsar pointings parsed from the catalogue")
 
     if obsids is not None:
@@ -184,10 +188,14 @@ def find_sources_in_obs(
         for obsid in obsids:
             obsid_data = []
             for source_name in pointings:
-                pointing = pointings[source_name]
+                dm, p0 = None, None
+                if "DM" in pointings[source_name]:
+                    dm = pointings[source_name]["DM"]
+                if "P0" in pointings[source_name]:
+                    p0 = pointings[source_name]["P0"]
                 if source_name in beam_coverage[obsid]:
                     enter_beam, exit_beam, max_power, _, _ = beam_coverage[obsid][source_name]
-                    obsid_data.append([source_name, enter_beam, exit_beam, max_power])
+                    obsid_data.append([source_name, enter_beam, exit_beam, max_power, dm, p0])
             finder_results[obsid] = obsid_data
 
     return finder_results, beam_coverage, pointings, all_obs_metadata

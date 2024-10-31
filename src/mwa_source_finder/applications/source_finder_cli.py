@@ -72,6 +72,12 @@ def main():
         help="A file containing a list of sources to find. Each source should be "
         + "listed on a new line. The source format is the same as the -s option.",
     )
+    source_args.add_argument(
+        "--condition",
+        type=str,
+        default=None,
+        help="A string of logical parameter conditions to pass to the pulsar " + "catalogue when submitting a query.",
+    )
 
     # Observation arguments
     obs_args = parser.add_argument_group(
@@ -131,7 +137,12 @@ def main():
         action="store_true",
         help="Force a search for sources in all obs IDs.",
     )
-    finder_args.add_argument("--dt", type=float, default=60, help="Step size in time for beam modelling.")
+    finder_args.add_argument(
+        "--dt",
+        type=float,
+        default=60,
+        help="Step size in time for beam modelling.",
+    )
     finder_args.add_argument(
         "--min_power",
         type=float,
@@ -164,15 +175,20 @@ def main():
         + "obs-for-source mode).",
     )
     out_args.add_argument(
-        "--beam_plot",
-        action="store_true",
-        help="Make a plot of the source path through the beam for each obs ID/source " + "combination.",
-    )
-    out_args.add_argument(
         "--time_plot",
         action="store_true",
         help="Make a plot of the source power over time for each obs ID for each "
         + "source. Only available in obs-for-source mode.",
+    )
+    out_args.add_argument(
+        "--beam_plot",
+        action="store_true",
+        help="Make a plot of the source path through the beam for each obs ID/source combination.",
+    )
+    out_args.add_argument(
+        "--ms_beam_plot",
+        action="store_true",
+        help="Make a plot of the source paths through the beam for each obs ID.",
     )
     out_args.add_argument(
         "--plan_obs_length",
@@ -254,11 +270,12 @@ def main():
     if args.obsids or args.obsids_file:
         if args.obsids:
             obsids = [str(obsid) for obsid in args.obsids]
+            logger.info(f"{len(obsids)} obs IDs parsed from command line")
         else:
             obsids = []
         if args.obsids_file:
-            logger.info(f"Parsing the provided obs ID list file: {args.obsids_file}")
             obsids_from_file = load_items_from_file(args.obsids_file)
+            logger.info(f"{len(obsids_from_file)} obs IDs parsed from file: {args.obsids_file}")
             if obsids:
                 obsids += obsids_from_file
             else:
@@ -278,6 +295,7 @@ def main():
         args.start,
         args.end,
         obs_for_source=args.obs_for_source,
+        condition=args.condition,
         filter_available=args.filter_available,
         input_dt=args.dt,
         norm_mode=norm_mode,
@@ -319,6 +337,7 @@ def main():
             args.end,
             norm_mode,
             args.min_power,
+            args.condition,
             logger=logger,
         )
 
@@ -332,7 +351,7 @@ def main():
             logger=logger,
         )
 
-    if args.beam_plot:
+    if args.beam_plot or args.ms_beam_plot:
         # Ensure finder results are in source-for-obs format
         if args.obs_for_source:
             obs_finder_results = sf.invert_finder_results(finder_results)
@@ -341,12 +360,24 @@ def main():
 
         for obsid in all_obs_metadata:
             obs_metadata = all_obs_metadata[obsid]
-            sf.plot_beam_sky_map(
-                obs_finder_results[obsid],
-                beam_coverage,
-                obs_metadata,
-                pointings,
-                min_power=args.min_power,
-                norm_to_zenith=True,
-                logger=logger,
-            )
+
+            if args.beam_plot:
+                sf.plot_beam_sky_map(
+                    obs_finder_results[obsid],
+                    beam_coverage,
+                    obs_metadata,
+                    pointings,
+                    min_power=args.min_power,
+                    norm_to_zenith=True,
+                    logger=logger,
+                )
+
+            if args.ms_beam_plot:
+                sf.plot_multisource_beam_sky_map(
+                    obs_finder_results[obsid],
+                    beam_coverage,
+                    obs_metadata,
+                    pointings,
+                    norm_to_zenith=True,
+                    logger=logger,
+                )
