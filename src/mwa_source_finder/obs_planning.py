@@ -321,7 +321,7 @@ def find_contiguous_ranges(sources: list, min_gap: float) -> list:
         if exit_time > interval_end:
             interval_end = exit_time
 
-        # For the last source, close the interval
-        if isource == len(sources) - 1:
-            contig_ranges.append([interval_start, interval_end, inbeam_sources])
+    # For the last source, close the interval
+    contig_ranges.append([interval_start, interval_end, inbeam_sources])
+
     return contig_ranges
