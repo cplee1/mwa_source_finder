@@ -90,6 +90,7 @@ def get_beam_power_vs_time(
     input_dt: float,
     norm_to_zenith: bool = True,
     freq_mode: str = "centre",
+    freq_samples: int = 10,
     logger: logging.Logger = None,
 ) -> Tuple[np.ndarray, np.ndarray, float, float]:
     """Compute the beam power over time for a multiple sources.
@@ -110,8 +111,11 @@ def get_beam_power_vs_time(
     norm_to_zenith : `bool`, optional
         Whether to normalise the powers to zenith, by default True.
     freq_mode : `str`, optional
-        The frequency to use to compute the beam power ['low', 'centre', 'high'],
+        The frequency to use to compute the beam power ['low', 'centre', 'high', 'multi'],
         by default 'centre'.
+    freq_samples : `int`, optional
+        If in multifreq mode, compute this many samples over the observing band,
+        by default 10.
     logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
@@ -150,11 +154,17 @@ def get_beam_power_vs_time(
 
     # Choose frequency to model
     if freq_mode == "low":
-        freq = 1.28e6 * np.min(obs_metadata["channels"])
+        freqs = [1.28e6 * np.min(obs_metadata["channels"])]
     elif freq_mode == "centre":
-        freq = 1e6 * obs_metadata["centrefreq"]
+        freqs = [1e6 * obs_metadata["centrefreq"]]
     elif freq_mode == "high":
-        freq = 1.28e6 * np.max(obs_metadata["channels"])
+        freqs = [1.28e6 * np.max(obs_metadata["channels"])]
+    elif freq_mode == "multi":
+        freqs = np.linspace(
+            1.28e6 * np.min(obs_metadata["channels"]),
+            1.28e6 * np.max(obs_metadata["channels"]),
+            num=freq_samples,
+        ).tolist()
 
     # Load the RA/DEC into numpy arrays
     RAs = np.empty(shape=(len(pointings)), dtype=float)
@@ -165,11 +175,22 @@ def get_beam_power_vs_time(
         DECs[isource] = pointing["DECJD"]
 
     # Compute power for each source at each timestep
-    P = np.zeros(shape=(len(pointings), len(times)), dtype=float)
-    logger.debug("Computing beam power over time for all sources")
+    num_coords = len(pointings) * len(times)
+    P = np.zeros(num_coords, dtype=float)
+    Azs = np.zeros(num_coords, dtype=float)
+    ZAs = np.zeros(num_coords, dtype=float)
+    idx_step = len(times)
     for itime, time in enumerate(times):
-        _, Azs, ZAs = sf.utils.equatorial_to_horizontal(RAs, DECs, time)
-        P[:, itime] = compute_beam_power_array(
+        idx_start = itime
+        idx_end = itime + num_coords
+        _, Azs[idx_start:idx_end:idx_step], ZAs[idx_start:idx_end:idx_step] = sf.utils.equatorial_to_horizontal(
+            RAs, DECs, time
+        )
+
+    Ps = []
+    for freq in freqs:
+        logger.debug(f"Computing beam powers over time at freq = {freq/1e6:.2f} MHz")
+        P = compute_beam_power_array(
             np.radians(Azs),
             np.radians(ZAs),
             freq,
@@ -177,7 +198,13 @@ def get_beam_power_vs_time(
             norm_to_zenith=norm_to_zenith,
             logger=logger,
         )
-    return P, times, duration, freq
+        P = P.reshape((len(pointings), len(times)))
+        Ps.append(P)
+
+    if len(freqs) == 1:
+        return Ps[0], times, duration, freqs[0]
+    else:
+        return Ps, times, duration, freqs
 
 
 def get_beam_power_sky_map(
