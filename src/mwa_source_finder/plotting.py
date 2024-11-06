@@ -115,13 +115,12 @@ def plot_power_vs_time(
     if obs_for_source:
         # Plot of power vs time for each observation, one plot per source
         for source_name in source_names:
-            ii = 0
             max_duration = 0
 
             fig = plt.figure(figsize=(8, 4), dpi=200)
             ax = fig.add_subplot(111)
 
-            for obsid in all_obs_metadata:
+            for ii, obsid in enumerate(all_obs_metadata):
                 if source_name in beam_coverage[obsid]:
                     obs_duration = all_obs_metadata[obsid]["duration"]
                     if obs_duration > max_duration:
@@ -133,14 +132,17 @@ def plot_power_vs_time(
                         logger.error(f"Source {source_name}: Too many obs IDs to make a power vs time plot. Skipping.")
                         return
 
-                    ax.errorbar(
-                        times,
-                        powers,
-                        ls=line_combos[ii][0],
-                        c=line_combos[ii][1],
-                        label=obsid,
-                    )
-                    ii += 1
+                    for ifreq in range(powers.shape[1]):
+                        label = None
+                        if ifreq == 0:
+                            label = obsid
+                        ax.errorbar(
+                            times,
+                            powers[:, ifreq],
+                            ls=line_combos[ii][0],
+                            c=line_combos[ii][1],
+                            label=label,
+                        )
 
             ax.fill_between(
                 [0, max_duration],
@@ -168,13 +170,12 @@ def plot_power_vs_time(
     else:
         # Plot of power vs time for each source, one plot per observation
         for obsid in all_obs_metadata:
-            ii = 0
             max_duration = all_obs_metadata[obsid]["duration"]
 
             fig = plt.figure(figsize=(8, 4), dpi=200)
             ax = fig.add_subplot(111)
 
-            for source_name in beam_coverage[obsid]:
+            for ii, source_name in enumerate(beam_coverage[obsid]):
                 _, _, _, powers, times = beam_coverage[obsid][source_name]
 
                 # Plot powers
@@ -182,14 +183,17 @@ def plot_power_vs_time(
                     logger.error(f"Obs ID {obsid}: Too many sources to make a power vs time plot. Skipping.")
                     return
 
-                ax.errorbar(
-                    times,
-                    powers,
-                    ls=line_combos[ii][0],
-                    c=line_combos[ii][1],
-                    label=source_name,
-                )
-                ii += 1
+                for ifreq in range(powers.shape[1]):
+                    label = None
+                    if ifreq == 0:
+                        label = source_name
+                    ax.errorbar(
+                        times,
+                        powers[:, ifreq],
+                        ls=line_combos[ii][0],
+                        c=line_combos[ii][1],
+                        label=label,
+                    )
 
             ax.fill_between(
                 [0, max_duration],
@@ -355,6 +359,7 @@ def plot_beam_sky_map(
         # ----------------------------------------------------------------------
         ax_1D = plt.subplot(gs[1])
         _, _, _, source_power, _ = beam_coverage[obs_metadata["obsid"]][source_name]
+        source_power = np.mean(source_power, axis=1)
 
         power_dt = np.linspace(0, obs_metadata["duration"], len(source_power))
         ax_1D.errorbar(
@@ -526,6 +531,7 @@ def plot_multisource_beam_sky_map(
     hatches = ["//", "\\\\", "+"]
     for ii, source_name in enumerate(source_names):
         _, _, _, source_power, _ = beam_coverage[obs_metadata["obsid"]][source_name]
+        source_power = np.mean(source_power, axis=1)
         power_dt = np.linspace(0, obs_metadata["duration"], len(source_power))
 
         ax_1D.errorbar(

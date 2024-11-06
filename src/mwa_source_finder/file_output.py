@@ -176,6 +176,15 @@ def write_output_obs_files(
         obs_metadata = obs_metadata_dict[obsid]
         t_start_offset = t_start * obs_metadata["duration"]
         t_stop_offset = t_end * obs_metadata["duration"]
+
+        if len(obs_metadata["evalfreqs"]) == 1:
+            freq = obs_metadata["evalfreqs"][0] / 1e6
+            freqs_str = f"# Frequency         -- {freq:.2f} MHz\n"
+        else:
+            low_freq = np.min(obs_metadata["evalfreqs"]) / 1e6
+            high_freq = np.max(obs_metadata["evalfreqs"]) / 1e6
+            freqs_str = f"# Frequency range   -- {low_freq:.2f}-{high_freq:.2f} MHz\n"
+
         divider_str = "# " + "-" * 78 + "\n"
         header = (
             divider_str
@@ -190,7 +199,7 @@ def write_output_obs_files(
             + f"# Stop GPS time     -- {t_stop_offset+obs_metadata['start_t']:.0f} s\n"
             + f"# Start time offset -- {t_start_offset:.0f} s\n"
             + f"# Stop time offset  -- {t_stop_offset:.0f} s\n"
-            + f"# Frequency         -- {obs_metadata['evalfreq']/1e6:.2f} MHz\n"
+            + freqs_str
             + f"# Beam norm         -- {norm_mode}\n"
             + f"# Min norm power    -- {min_power:.2f}\n"
             + f"# PSRCAT condition  -- {condition}\n"

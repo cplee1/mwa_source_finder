@@ -159,6 +159,7 @@ def find_best_obs_times_for_sources(
         for obsid in all_obs_metadata:
             if source in beam_coverage[obsid]:
                 _, _, _, powers, times = beam_coverage[obsid][source]
+                powers = np.mean(powers, axis=1)
                 obs_metadata = all_obs_metadata[obsid]
 
                 # Find the best start/stop times for the observation
@@ -181,6 +182,7 @@ def find_best_obs_times_for_sources(
         # Get beam coverage and metadata of best observation
         best_obsid = obsids[np.argmax(np.array(mean_powers))]
         _, _, _, powers, times = beam_coverage[best_obsid][source]
+        powers = np.mean(powers, axis=1)
         obs_metadata = all_obs_metadata[best_obsid]
 
         # Find the best start/stop times for the best observation
