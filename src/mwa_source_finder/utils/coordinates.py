@@ -434,6 +434,9 @@ def get_atnf_pulsars(condition: str = None, logger: logging.Logger = None) -> di
     # Loop through all the pulsars and store the pointings in dictionaries
     pointings = dict()
     for psrj, raj, decj, rajd, decjd, dm, p0 in zip(psrjs, rajs, decjs, rajds, decjds, dms, p0s):
+        if raj == "" or decj == "":
+            logger.debug(f"Incomplete catalogued coordinates for PSR {psrj}")
+            continue
         raj = _format_sexigesimal(raj, logger=logger)
         decj = _format_sexigesimal(decj, add_sign=True, logger=logger)
         pointing = dict(name=psrj, RAJ=raj, DECJ=decj, RAJD=rajd, DECJD=decjd, DM=dm, P0=p0)
