@@ -358,12 +358,11 @@ def plot_beam_sky_map(
         # Power vs time plot
         # ----------------------------------------------------------------------
         ax_1D = plt.subplot(gs[1])
-        _, _, _, source_power, _ = beam_coverage[obs_metadata["obsid"]][source_name]
-        source_power = np.mean(source_power, axis=1)
-
-        power_dt = np.linspace(0, obs_metadata["duration"], len(source_power))
+        _, _, _, source_powers, times = beam_coverage[obs_metadata["obsid"]][source_name]
+        source_power = np.mean(source_powers, axis=1)
+        
         ax_1D.errorbar(
-            power_dt,
+            times,
             source_power,
             fmt="k-",
         )
