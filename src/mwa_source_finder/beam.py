@@ -52,7 +52,7 @@ def compute_beam_power_array(
         logger = sf.utils.get_logger()
 
     if os.environ.get("MWA_BEAM_FILE"):
-        beam = mwa_hyperbeam.FEEBeam()
+        beam = mwa_hyperbeam.FEEBeam(None)
     else:
         logger.error(
             "MWA_BEAM_FILE environment variable not set! Please set to the "
