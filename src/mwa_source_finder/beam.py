@@ -52,7 +52,7 @@ def compute_beam_power_array(
         logger = sf.utils.get_logger()
 
     if os.environ.get("MWA_BEAM_FILE"):
-        beam = mwa_hyperbeam.FEEBeam()
+        beam = mwa_hyperbeam.FEEBeam(None)
     else:
         logger.error(
             "MWA_BEAM_FILE environment variable not set! Please set to the "
@@ -90,6 +90,7 @@ def get_beam_power_vs_time(
     input_dt: float,
     norm_to_zenith: bool = True,
     freq_mode: str = "centre",
+    freq_samples: int = 10,
     logger: logging.Logger = None,
 ) -> Tuple[np.ndarray, np.ndarray, float, float]:
     """Compute the beam power over time for a multiple sources.
@@ -110,15 +111,18 @@ def get_beam_power_vs_time(
     norm_to_zenith : `bool`, optional
         Whether to normalise the powers to zenith, by default True.
     freq_mode : `str`, optional
-        The frequency to use to compute the beam power ['low', 'centre', 'high'],
+        The frequency to use to compute the beam power ['low', 'centre', 'high', 'multi'],
         by default 'centre'.
+    freq_samples : `int`, optional
+        If in multifreq mode, compute this many samples over the observing band,
+        by default 10.
     logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
     Returns
     -------
-    P : `np.ndarray`
-        An array of powers with dimensions of (#sources, #timesteps).
+    powers : `np.ndarray`
+        An array of powers with dimensions of (#sources, #timesteps, #freqs).
     times : `np.ndarray`
         The timesteps used to compute the powers.
     duration : `float`
@@ -150,11 +154,17 @@ def get_beam_power_vs_time(
 
     # Choose frequency to model
     if freq_mode == "low":
-        freq = 1.28e6 * np.min(obs_metadata["channels"])
+        freqs = [1.28e6 * np.min(obs_metadata["channels"])]
     elif freq_mode == "centre":
-        freq = 1e6 * obs_metadata["centrefreq"]
+        freqs = [1e6 * obs_metadata["centrefreq"]]
     elif freq_mode == "high":
-        freq = 1.28e6 * np.max(obs_metadata["channels"])
+        freqs = [1.28e6 * np.max(obs_metadata["channels"])]
+    elif freq_mode == "multi":
+        freqs = np.linspace(
+            1.28e6 * np.min(obs_metadata["channels"]),
+            1.28e6 * np.max(obs_metadata["channels"]),
+            num=freq_samples,
+        ).tolist()
 
     # Load the RA/DEC into numpy arrays
     RAs = np.empty(shape=(len(pointings)), dtype=float)
@@ -165,11 +175,22 @@ def get_beam_power_vs_time(
         DECs[isource] = pointing["DECJD"]
 
     # Compute power for each source at each timestep
-    P = np.zeros(shape=(len(pointings), len(times)), dtype=float)
-    logger.debug("Computing beam power over time for all sources")
+    num_coords = len(pointings) * len(times)
+    Azs = np.zeros(num_coords, dtype=float)
+    ZAs = np.zeros(num_coords, dtype=float)
+    idx_step = len(times)
     for itime, time in enumerate(times):
-        _, Azs, ZAs = sf.utils.equatorial_to_horizontal(RAs, DECs, time)
-        P[:, itime] = compute_beam_power_array(
+        idx_start = itime
+        idx_end = itime + num_coords
+        _, Azs[idx_start:idx_end:idx_step], ZAs[idx_start:idx_end:idx_step] = sf.utils.equatorial_to_horizontal(
+            RAs, DECs, time
+        )
+
+    powers_temp = np.zeros(num_coords, dtype=float)
+    powers = np.empty(shape=(len(pointings), len(times), len(freqs)), dtype=float)
+    for ifreq, freq in enumerate(freqs):
+        logger.debug(f"Computing beam powers over time at freq = {freq/1e6:.2f} MHz")
+        powers_temp = compute_beam_power_array(
             np.radians(Azs),
             np.radians(ZAs),
             freq,
@@ -177,7 +198,9 @@ def get_beam_power_vs_time(
             norm_to_zenith=norm_to_zenith,
             logger=logger,
         )
-    return P, times, duration, freq
+        powers[:, :, ifreq] = powers_temp.reshape((len(pointings), len(times)))
+
+    return powers, times, duration, freqs
 
 
 def get_beam_power_sky_map(
@@ -219,7 +242,7 @@ def get_beam_power_sky_map(
     P = compute_beam_power_array(
         az,
         za,
-        obs_metadata["evalfreq"],
+        np.mean(obs_metadata["evalfreqs"]),
         obs_metadata["delays"],
         norm_to_zenith=norm_to_zenith,
         logger=logger,
@@ -287,6 +310,7 @@ def source_beam_coverage(
     norm_mode: str = "zenith",
     min_power: float = 0.3,
     freq_mode: str = "centre",
+    freq_samples: int = 10,
     logger: logging.Logger = None,
 ) -> Tuple[dict, dict]:
     """For lists of pointings and observations, find where each source each
@@ -315,8 +339,11 @@ def source_beam_coverage(
     min_power : `float`, optional
         The minimum normalised power to count as in the beam, by default 0.3.
     freq_mode : `str`, optional
-        The frequency to use to compute the beam power ['low', 'centre', 'high'],
+        The frequency to use to compute the beam power ['low', 'centre', 'high', 'multi'],
         by default 'centre'.
+    freq_samples : `int`, optional
+        If in multifreq mode, compute this many samples over the observing band,
+        by default 10.
     logger : `logging.Logger`, optional
         A custom logger to use, by default None.
 
@@ -332,10 +359,14 @@ def source_beam_coverage(
                 The fraction of the observation where the source exits the beam.
             max_pow: `float`
                 The maximum power reached within the beam.
+            powers: `np.ndarray`
+                An array of powers with dimensions of (#times, #freqs).
+            times: `np.ndarray`
+                The times at which the powers were evaluated.
 
     all_obs_metadata : `dict`
-        The same as the input dictionary with an added 'evalfreq' field for
-        the frequency at which each observation was searched.
+        The same as the input dictionary with an added 'evalfreqs' field for
+        the frequencies at which each observation was searched.
     """
     if logger is None:
         logger = sf.utils.get_logger()
@@ -356,7 +387,7 @@ def source_beam_coverage(
         obs_metadata = all_obs_metadata[obsid]
 
         logger.debug(f"Obs ID {obsid}: Getting beam powers")
-        powers, times, duration, freq = get_beam_power_vs_time(
+        powers, times, duration, freqs = get_beam_power_vs_time(
             pointings,
             obs_metadata,
             t_start,
@@ -364,12 +395,14 @@ def source_beam_coverage(
             input_dt,
             norm_to_zenith=norm_to_zenith,
             freq_mode=freq_mode,
+            freq_samples=freq_samples,
             logger=logger,
         )
-        all_obs_metadata[obsid]["evalfreq"] = freq
+        all_obs_metadata[obsid]["evalfreqs"] = freqs
 
         logger.debug(f"Obs ID {obsid}: Getting enter and exit times")
-        for source_power, source_name in zip(powers, pointings):
+        # Use only the lowest frequency in the powers array
+        for isource, (source_power, source_name) in enumerate(zip(powers[:, :, 0], pointings)):
             if np.max(source_power) > min_power:
                 beam_enter, beam_exit = beam_enter_exit(
                     source_power,
@@ -381,7 +414,7 @@ def source_beam_coverage(
                     beam_enter,
                     beam_exit,
                     np.amax(source_power),
-                    source_power,
+                    powers[isource, :, :],
                     times - float(obsid),
                 ]
         if not beam_coverage[obsid]:

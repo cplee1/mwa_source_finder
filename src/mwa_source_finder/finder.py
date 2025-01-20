@@ -22,6 +22,7 @@ def find_sources_in_obs(
     norm_mode: str = "zenith",
     min_power: float = 0.3,
     freq_mode: str = "centre",
+    freq_samples: int = 10,
     no_cache: bool = False,
     logger: logging.Logger = None,
 ) -> Tuple[dict, dict]:
@@ -53,6 +54,9 @@ def find_sources_in_obs(
     freq_mode : `str`, optional
         The frequency to use to compute the beam power ['low', 'centre', 'high'],
         by default 'centre'.
+    freq_samples : `int`, optional
+        If in multifreq mode, compute this many samples over the observing band,
+        by default 10.
     no_cache : `bool`, optional
         Do not read or write to the metadata cache, by default False.
     logger : `logging.Logger`, optional
@@ -140,7 +144,10 @@ def find_sources_in_obs(
     # Only query the obs IDs which aren't in the cache
     if len(obsids_to_query) > 0:
         logger.info("Obtaining metadata for observations...")
-        for obsid in tqdm(obsids_to_query, unit="obsid"):
+        disable_tqdm = True
+        if logger.level in [logging.DEBUG, logging.INFO]:
+            disable_tqdm = False
+        for obsid in tqdm(obsids_to_query, unit="obsid", disable=disable_tqdm):
             obs_metadata_tmp = sf.utils.get_common_metadata(obsid, filter_available, logger)
             if obs_metadata_tmp is not None:
                 all_obs_metadata[obsid] = obs_metadata_tmp
@@ -166,6 +173,7 @@ def find_sources_in_obs(
         norm_mode=norm_mode,
         min_power=min_power,
         freq_mode=freq_mode,
+        freq_samples=freq_samples,
         logger=logger,
     )
     obsids = beam_coverage.keys()

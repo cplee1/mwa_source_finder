@@ -160,11 +160,18 @@ def main():
     finder_args.add_argument(
         "--freq_mode",
         type=str,
-        choices=["low", "centre", "high"],
+        choices=["low", "centre", "high", "multi"],
         default="centre",
         help="Which frequency to use to compute the beam power. 'low' will use the "
         + "lowest frequency (most generous). 'centre' will use the centre frequency. "
-        + "'high' will use the highest frequency (most conservative).",
+        + "'high' will use the highest frequency (most conservative). 'multi' will "
+        + "use multiple frequencies over the observing band.",
+    )
+    finder_args.add_argument(
+        "--freq_samples",
+        type=int,
+        default=10,
+        help="The number of frequencies to evaluate the beam at when in freq_mode='multi'.",
     )
 
     # Output arguments
@@ -301,6 +308,7 @@ def main():
         norm_mode=norm_mode,
         min_power=args.min_power,
         freq_mode=args.freq_mode,
+        freq_samples=args.freq_samples,
         no_cache=args.no_cache,
         logger=logger,
     )
