@@ -77,8 +77,8 @@ def write_output_source_files(
             obs_plan_str = (
                 "# Observation plan:\n"
                 + f"# Best obs          -- {best_obsid}\n"
-                + f"# Start GPS time    -- {gps_start_t+start_t:.0f} s\n"
-                + f"# Stop GPS time     -- {gps_start_t+stop_t:.0f} s\n"
+                + f"# Start GPS time    -- {gps_start_t + start_t:.0f} s\n"
+                + f"# Stop GPS time     -- {gps_start_t + stop_t:.0f} s\n"
                 + f"# Start time offset -- {start_t:.0f} s\n"
                 + f"# Stop time offset  -- {stop_t:.0f} s\n"
                 + divider_str
@@ -195,8 +195,8 @@ def write_output_obs_files(
             + f"# Duration    -- {obs_metadata['duration']:.0f} s\n"
             + divider_str
             + "# Source finder settings:\n"
-            + f"# Start GPS time    -- {t_start_offset+obs_metadata['start_t']:.0f} s\n"
-            + f"# Stop GPS time     -- {t_stop_offset+obs_metadata['start_t']:.0f} s\n"
+            + f"# Start GPS time    -- {t_start_offset + obs_metadata['start_t']:.0f} s\n"
+            + f"# Stop GPS time     -- {t_stop_offset + obs_metadata['start_t']:.0f} s\n"
             + f"# Start time offset -- {t_start_offset:.0f} s\n"
             + f"# Stop time offset  -- {t_stop_offset:.0f} s\n"
             + freqs_str

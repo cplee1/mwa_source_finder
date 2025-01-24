@@ -264,7 +264,7 @@ def plan_data_download(
                         obsid,
                         f"{start_time:.0f}",
                         f"{stop_time:.0f}",
-                        f"{stop_time-start_time:.0f}",
+                        f"{stop_time - start_time:.0f}",
                         " ".join(sources),
                     ]
                 )

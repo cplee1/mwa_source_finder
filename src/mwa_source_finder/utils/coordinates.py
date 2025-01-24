@@ -433,7 +433,7 @@ def get_atnf_pulsars(condition: str = None, logger: logging.Logger = None) -> di
     p0s = list(query.table["P0"] * 1e3)
     # Loop through all the pulsars and store the pointings in dictionaries
     pointings = dict()
-    for psrj, raj, decj, rajd, decjd, dm, p0 in zip(psrjs, rajs, decjs, rajds, decjds, dms, p0s):
+    for psrj, raj, decj, rajd, decjd, dm, p0 in zip(psrjs, rajs, decjs, rajds, decjds, dms, p0s, strict=True):
         if raj == "" or decj == "":
             logger.debug(f"Incomplete catalogued coordinates for PSR {psrj}")
             continue

@@ -189,7 +189,7 @@ def get_beam_power_vs_time(
     powers_temp = np.zeros(num_coords, dtype=float)
     powers = np.empty(shape=(len(pointings), len(times), len(freqs)), dtype=float)
     for ifreq, freq in enumerate(freqs):
-        logger.debug(f"Computing beam powers over time at freq = {freq/1e6:.2f} MHz")
+        logger.debug(f"Computing beam powers over time at freq = {freq / 1e6:.2f} MHz")
         powers_temp = compute_beam_power_array(
             np.radians(Azs),
             np.radians(ZAs),
@@ -402,7 +402,7 @@ def source_beam_coverage(
 
         logger.debug(f"Obs ID {obsid}: Getting enter and exit times")
         # Use only the lowest frequency in the powers array
-        for isource, (source_power, source_name) in enumerate(zip(powers[:, :, 0], pointings)):
+        for isource, (source_power, source_name) in enumerate(zip(powers[:, :, 0], pointings, strict=True)):
             if np.max(source_power) > min_power:
                 beam_enter, beam_exit = beam_enter_exit(
                     source_power,

@@ -1,6 +1,7 @@
 import logging
 
 import astropy.units as u
+import cmasher as cmr
 import matplotlib as mpl
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
@@ -13,6 +14,8 @@ import mwa_source_finder as sf
 plt.rcParams["mathtext.fontset"] = "dejavuserif"
 plt.rcParams["font.family"] = "serif"
 plt.rcParams["font.size"] = 12
+# plt.rcParams["text.usetex"] = True
+# plt.rcParams["font.serif"] = "cm"
 
 __all__ = [
     "setup_axis",
@@ -278,17 +281,17 @@ def plot_beam_sky_map(
     source_coords = SkyCoord(source_RAs, source_DECs, unit=(u.deg, u.deg), frame="icrs")
 
     # Define the colour map
-    cmap = mpl.colormaps["magma_r"]
+    cmap = plt.get_cmap("cmr.arctic_r")
     cmap.set_under(color="w")
     contour_levels = [0.01, 0.1, 0.5, 0.9]
 
-    for source_name, source_radec in zip(source_names, source_coords):
+    for source_name, source_radec in zip(source_names, source_coords, strict=True):
         path0 = get_source_path(start_t, -3600, 0, source_radec)
         path1 = get_source_path(start_t, 0, obs_metadata["duration"], source_radec)
         path2 = get_source_path(start_t, obs_metadata["duration"], obs_metadata["duration"] + 3600, source_radec)
 
         # Figure setup
-        fig = plt.figure(figsize=(6, 7.5), dpi=200)
+        fig = plt.figure(figsize=(5, 6.5), dpi=200)
         fig.suptitle(f"Obs ID: {obs_metadata['obsid']}   Source: {source_name}", y=1.02)
         gs = mpl.gridspec.GridSpec(2, 1, hspace=0.2, height_ratios=[3, 1])
 
@@ -317,12 +320,13 @@ def plot_beam_sky_map(
             ["-", "-", "-"],
             ["lightpink", "r", "lightskyblue"],
             ["1 h before", "Observation", "1 h after"],
+            strict=True,
         ):
             ax_2D.errorbar(
                 path[0, :],
                 path[1, :],
                 ls=ls,
-                lw=2.5,
+                lw=2,
                 c=col,
                 zorder=1e6,
                 rasterized=True,
@@ -338,9 +342,10 @@ def plot_beam_sky_map(
 
         ax_2D.set_theta_zero_location("N")
         ax_2D.set_theta_direction(-1)
+        ax_2D.set_rlabel_position(157.5)
         ax_2D.grid(ls=":", color="0.5")
         ax_2D.set_yticks(np.radians([15, 35, 55, 75]))
-        ax_2D.set_yticklabels([rf"${int(x)}^{{\degree}}$" for x in np.round(np.degrees(ax_2D.get_yticks()), 0)])
+        ax_2D.set_yticklabels(["${}^\\circ$".format(int(x)) for x in np.round(np.degrees(ax_2D.get_yticks()), 0)])
         ax_2D.set_xlabel("Azimuth angle [deg]", labelpad=5)
         ax_2D.set_ylabel("Zenith angle [deg]", labelpad=30)
         ax_2D.tick_params(labelsize=10)
@@ -360,11 +365,12 @@ def plot_beam_sky_map(
         ax_1D = plt.subplot(gs[1])
         _, _, _, source_powers, times = beam_coverage[obs_metadata["obsid"]][source_name]
         source_power = np.mean(source_powers, axis=1)
-        
+
         ax_1D.errorbar(
             times,
             source_power,
             fmt="k-",
+            lw=1,
         )
 
         if min_power is not None:
@@ -383,7 +389,8 @@ def plot_beam_sky_map(
         ax_1D.set_xlim([0, obs_metadata["duration"]])
         ax_1D.set_yticks([0, 0.1, 0.5, 0.9, 1.0])
         ax_1D.grid(ls=":", color="0.5")
-        ax_1D.tick_params(labelsize=10)
+        ax_1D.yaxis.set_minor_locator(mpl.ticker.MultipleLocator(0.1))
+        ax_1D.tick_params(axis="both", which="both", right=True, top=True, direction="in", labelsize=10)
 
         fig_name = f"{obs_metadata['obsid']}_{source_name}_sky_beam_power.png"
         logger.info(f"Saving plot file: {fig_name}")
@@ -449,21 +456,18 @@ def plot_multisource_beam_sky_map(
     source_coords = SkyCoord(source_RAs, source_DECs, unit=(u.deg, u.deg), frame="icrs")
 
     # Define the colour map
-    cmap = mpl.colormaps["magma_r"]
+    cmap = plt.get_cmap("cmr.arctic_r")
     cmap.set_under(color="w")
     contour_levels = [0.01, 0.1, 0.5, 0.9]
 
     # Figure setup
-    fig = plt.figure(figsize=(6, 9), dpi=300)
-    gs0 = fig.add_gridspec(2, 1, hspace=0.1, height_ratios=[2, 1])
+    fig = plt.figure(figsize=(5, 6.5), dpi=300)
+    gs0 = fig.add_gridspec(2, 1, hspace=0.1, height_ratios=[3, 1])
     gs00 = gs0[0]
-    gs01 = gs0[1].subgridspec(2, 1, hspace=0, height_ratios=[1, 4])
-    gs010 = gs01[0]
-    gs011 = gs01[1]
+    gs01 = gs0[1]
 
     ax_2D = fig.add_subplot(gs00, projection="polar")
-    ax_shade = fig.add_subplot(gs010)
-    ax_1D = fig.add_subplot(gs011)
+    ax_1D = fig.add_subplot(gs01)
 
     # Polar plot
     # ----------------------------------------------------------------------
@@ -488,18 +492,21 @@ def plot_multisource_beam_sky_map(
         path2 = get_source_path(start_t, obs_metadata["duration"], obs_metadata["duration"] + 3600, source_radec)
 
         # Plot source paths through beam
-        for path, ls, col, lab in zip(
+        for path, ls, col, lab, alpha in zip(
             [path0, path1, path2],
             ["-", "-", "-"],
-            ["lightpink", "r", "lightskyblue"],
+            ["tab:red", "tab:red", "tab:red"],
             ["1 h before", "Observation", "1 h after"],
+            [0.4, 1, 0.4],
+            strict=True,
         ):
             ax_2D.errorbar(
                 path[0, :],
                 path[1, :],
                 ls=ls,
-                lw=2,
+                lw=1.7,
                 c=col,
+                alpha=alpha,
                 zorder=1e6,
                 rasterized=True,
                 label=lab if ii == 0 else None,
@@ -507,12 +514,14 @@ def plot_multisource_beam_sky_map(
 
     ax_2D.set_theta_zero_location("N")
     ax_2D.set_theta_direction(-1)
+    ax_2D.set_rlabel_position(157.5)
     ax_2D.grid(ls=":", color="0.5")
-    ax_2D.set_yticks(np.radians([15, 35, 55, 75]))
-    ax_2D.set_yticklabels([rf"${int(x)}^{{\degree}}$" for x in np.round(np.degrees(ax_2D.get_yticks()), 0)])
+    ax_2D.set_ylim(np.radians([0, 75]))
+    ax_2D.set_yticks(np.radians([15, 30, 45, 60]))
+    ax_2D.set_yticklabels(["${}^\\circ$".format(int(x)) for x in np.round(np.degrees(ax_2D.get_yticks()), 0)])
     ax_2D.set_xlabel("Azimuth angle [deg]", labelpad=5)
     ax_2D.set_ylabel("Zenith angle [deg]", labelpad=30)
-    ax_2D.tick_params(labelsize=10)
+    ax_2D.tick_params(axis="both", which="both", direction="in", labelsize=10)
     cbar = plt.colorbar(
         im,
         pad=0.13,
@@ -526,8 +535,7 @@ def plot_multisource_beam_sky_map(
 
     # Power vs time plot
     # ----------------------------------------------------------------------
-    cols = list(mcolors.TABLEAU_COLORS)
-    hatches = ["//", "\\\\", "+"]
+    lstyles = ["-", "--", "-.", ":"]
     for ii, source_name in enumerate(source_names):
         _, _, _, source_power, _ = beam_coverage[obs_metadata["obsid"]][source_name]
         source_power = np.mean(source_power, axis=1)
@@ -536,9 +544,10 @@ def plot_multisource_beam_sky_map(
         ax_1D.errorbar(
             power_dt,
             source_power,
-            fmt="-",
-            c=cols[ii % 5],
-            lw=2,
+            marker="none",
+            ls=lstyles[ii % 4],
+            c="k",
+            lw=1,
         )
 
         start_t, stop_t, _ = sf.plan_obs_times(
@@ -547,15 +556,6 @@ def plot_multisource_beam_sky_map(
             power_dt,
             1800,
             logger=logger,
-        )
-
-        ax_shade.fill_betweenx(
-            [0, 1],
-            start_t,
-            stop_t,
-            color=cols[ii % 5],
-            hatch=hatches[ii % 3],
-            alpha=0.3,
         )
 
     if min_power is not None:
@@ -572,17 +572,15 @@ def plot_multisource_beam_sky_map(
     ax_1D.set_ylabel("Z.N. beam power")
     ax_1D.set_ylim([0, 1])
     ax_1D.set_xlim([0, obs_metadata["duration"]])
+    ax_1D.minorticks_on()
     ax_1D.set_yticks([0, 0.1, 0.5, 0.9, 1.0])
+    ax_1D.yaxis.set_minor_locator(mpl.ticker.MultipleLocator(0.1))
+    ax_1D.tick_params(axis="both", which="both", right=True, top=True, direction="in", labelsize=10)
     ax_1D.grid(ls=":", color="0.5")
-    ax_1D.tick_params(labelsize=10)
-
-    ax_shade.set_ylim([0, 1])
-    ax_shade.set_xlim([0, obs_metadata["duration"]])
-    ax_shade.set_xticks([])
-    ax_shade.set_yticks([])
 
     fig_name = f"{obs_metadata['obsid']}_multisource_sky_beam_power"
     logger.info(f"Saving plot file: {fig_name}.png")
     plt.savefig(fig_name + ".png", bbox_inches="tight")
+    # plt.savefig(fig_name + ".pdf", bbox_inches="tight")
 
     plt.close()
