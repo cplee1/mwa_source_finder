@@ -259,13 +259,18 @@ def plan_data_download(
             writer.writerow(["obsID", "start_time", "stop_time", "duration", "sources"])
             for download_plan in download_plans:
                 obsid, start_time, stop_time, sources = download_plan
+                source_info = []
+                for source in sources:
+                    enter_time = _round_down(source[1], 8)
+                    exit_time = _round_down(source[2], 8)
+                    source_info.append(f"{source[0]}@{enter_time:04.0f}-{exit_time:04.0f}")
                 writer.writerow(
                     [
                         obsid,
                         f"{start_time:.0f}",
                         f"{stop_time:.0f}",
-                        f"{stop_time-start_time:.0f}",
-                        " ".join(sources),
+                        f"{stop_time - start_time:.0f}",
+                        " ".join(source_info),
                     ]
                 )
     return download_plans
@@ -287,9 +292,8 @@ def find_contiguous_ranges(sources: list, min_gap: float) -> list:
     Returns
     -------
     contig_ranges : `list`
-        A list of tuples, each containing the start time of the contiguous
-        time interval, the end time of the contiguous time interval, and the
-        names of the sources within that interval.
+        A list of tuples, one per contiguous interval. Each tuple contains:
+        (interval_start, interval_end, [(source, enter_time, exit_time), ...])
     """
     # Sort sources by entry time
     sources.sort(key=lambda x: x[1])
@@ -312,18 +316,18 @@ def find_contiguous_ranges(sources: list, min_gap: float) -> list:
 
         if enter_time > interval_end + min_gap:
             # If true, then start a new interval
-            contig_ranges.append([interval_start, interval_end, inbeam_sources])
-            inbeam_sources = [source_name]
+            contig_ranges.append((interval_start, interval_end, inbeam_sources))
+            inbeam_sources = [(source_name, enter_time, exit_time)]
             interval_start = enter_time
             interval_end = exit_time
             continue
 
         # Otherwise, source coverage overlaps (or nearly overlaps) with the interval
-        inbeam_sources.append(source_name)
+        inbeam_sources.append((source_name, enter_time, exit_time))
         if exit_time > interval_end:
             interval_end = exit_time
 
     # For the last source, close the interval
-    contig_ranges.append([interval_start, interval_end, inbeam_sources])
+    contig_ranges.append((interval_start, interval_end, inbeam_sources))
 
     return contig_ranges
