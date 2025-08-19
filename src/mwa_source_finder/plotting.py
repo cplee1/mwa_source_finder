@@ -9,13 +9,8 @@ import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
 from astropy.time import Time
 
-import mwa_source_finder as sf
-
-plt.rcParams["mathtext.fontset"] = "dejavuserif"
-plt.rcParams["font.family"] = "serif"
-plt.rcParams["font.size"] = 12
-# plt.rcParams["text.usetex"] = True
-# plt.rcParams["font.serif"] = "cm"
+from .beam import get_beam_power_sky_map
+from .constants import LINE_STYLES, TEL_LOCATION
 
 __all__ = [
     "setup_axis",
@@ -23,6 +18,8 @@ __all__ = [
     "plot_beam_sky_map",
     "plot_multisource_beam_sky_map",
 ]
+
+logger = logging.getLogger(__name__)
 
 
 def setup_axis(ax, duration, fontsize=12):
@@ -35,8 +32,8 @@ def setup_axis(ax, duration, fontsize=12):
     ax.minorticks_on()
     ax.grid(ls=":", color="0.5")
     ax.set_xlim([0, duration])
-    ax.set_xlabel("Time since start of observation [s]")
-    ax.set_ylabel("Zenith-normalised beam power")
+    ax.set_xlabel("Elapsed Time [s]")
+    ax.set_ylabel("Zenith-Normalised Beam Power")
 
 
 def get_source_path(
@@ -70,7 +67,7 @@ def get_source_path(
         in radians.
     """
     source_dt = np.linspace(start_t_rel, end_t_rel, num_points) * u.s
-    obs_frame = AltAz(obstime=start_t_abs + source_dt, location=sf.TEL_LOCATION)
+    obs_frame = AltAz(obstime=start_t_abs + source_dt, location=TEL_LOCATION)
     source_altaz = source_radec.transform_to(obs_frame)
     altaz_path = np.empty((2, len(source_altaz)))
     for ii, altaz_step in enumerate(source_altaz):
@@ -85,7 +82,6 @@ def plot_power_vs_time(
     beam_coverage: dict,
     min_power: float,
     obs_for_source: bool = False,
-    logger: logging.Logger = None,
 ) -> None:
     """Make a plot of power vs time showing each obs ID for a source.
 
@@ -104,14 +100,9 @@ def plot_power_vs_time(
         The minimum power to count as in the beam.
     obs_for_source : `bool`, optional
         Whether to search for observations for each source, by default False.
-    logger : `logging.Logger`, optional
-        A custom logger to use, by default None.
     """
-    if logger is None:
-        logger = sf.utils.get_logger()
-
     line_combos = []
-    for lsi in sf.LINE_STYLES:
+    for lsi in LINE_STYLES:
         for coli in list(mcolors.TABLEAU_COLORS):
             line_combos.append([lsi, coli])
 
@@ -120,7 +111,7 @@ def plot_power_vs_time(
         for source_name in source_names:
             max_duration = 0
 
-            fig = plt.figure(figsize=(8, 4), dpi=200)
+            fig = plt.figure(figsize=(8, 4))
             ax = fig.add_subplot(111)
 
             for ii, obsid in enumerate(all_obs_metadata):
@@ -132,7 +123,10 @@ def plot_power_vs_time(
 
                     # Plot powers
                     if ii >= len(line_combos):
-                        logger.error(f"Source {source_name}: Too many obs IDs to make a power vs time plot. Skipping.")
+                        logger.error(
+                            f"Source {source_name}: Too many obs IDs to make a "
+                            + "power vs time plot. Skipping."
+                        )
                         return
 
                     for ifreq in range(powers.shape[1]):
@@ -160,7 +154,6 @@ def plot_power_vs_time(
                 loc="upper center",
                 bbox_to_anchor=(0.5, -0.02),
                 fancybox=True,
-                shadow=True,
                 ncol=3,
             )
             fig.suptitle(f"Source: {source_name}")
@@ -175,7 +168,7 @@ def plot_power_vs_time(
         for obsid in all_obs_metadata:
             max_duration = all_obs_metadata[obsid]["duration"]
 
-            fig = plt.figure(figsize=(8, 4), dpi=200)
+            fig = plt.figure(figsize=(8, 4))
             ax = fig.add_subplot(111)
 
             for ii, source_name in enumerate(beam_coverage[obsid]):
@@ -183,7 +176,10 @@ def plot_power_vs_time(
 
                 # Plot powers
                 if ii >= len(line_combos):
-                    logger.error(f"Obs ID {obsid}: Too many sources to make a power vs time plot. Skipping.")
+                    logger.error(
+                        f"Obs ID {obsid}: Too many sources to make a "
+                        + "power vs time plot. Skipping."
+                    )
                     return
 
                 for ifreq in range(powers.shape[1]):
@@ -211,7 +207,6 @@ def plot_power_vs_time(
                 loc="upper center",
                 bbox_to_anchor=(0.5, -0.02),
                 fancybox=True,
-                shadow=True,
                 ncol=3,
             )
             fig.suptitle(f"Obs ID: {obsid}")
@@ -230,7 +225,6 @@ def plot_beam_sky_map(
     pointings: dict,
     min_power: float = None,
     norm_to_zenith: bool = True,
-    logger: logging.Logger = None,
 ) -> None:
     """Plot a figure showing the beam power and power vs time.
 
@@ -253,17 +247,8 @@ def plot_beam_sky_map(
         If specified, will plot the minimum power on the power vs time plot.
     norm_to_zenith : `bool`, optional
         Whether to normalise the powers to zenith, by default True.
-    logger : `logging.Logger`, optional
-        A custom logger to use, by default None.
     """
-    if logger is None:
-        logger = sf.utils.get_logger()
-
-    az, za, powers = sf.get_beam_power_sky_map(
-        obs_metadata,
-        norm_to_zenith=norm_to_zenith,
-        logger=logger,
-    )
+    az, za, powers = get_beam_power_sky_map(obs_metadata, norm_to_zenith=norm_to_zenith)
 
     # Compute the timestep frames
     start_t = Time(obs_metadata["start_t"], format="gps")
@@ -288,12 +273,17 @@ def plot_beam_sky_map(
     for source_name, source_radec in zip(source_names, source_coords, strict=True):
         path0 = get_source_path(start_t, -3600, 0, source_radec)
         path1 = get_source_path(start_t, 0, obs_metadata["duration"], source_radec)
-        path2 = get_source_path(start_t, obs_metadata["duration"], obs_metadata["duration"] + 3600, source_radec)
+        path2 = get_source_path(
+            start_t,
+            obs_metadata["duration"],
+            obs_metadata["duration"] + 3600,
+            source_radec,
+        )
 
         # Figure setup
-        fig = plt.figure(figsize=(5, 6.5), dpi=200)
+        fig = plt.figure(figsize=(5, 6.5))
         fig.suptitle(f"Obs ID: {obs_metadata['obsid']}   Source: {source_name}", y=1.02)
-        gs = mpl.gridspec.GridSpec(2, 1, hspace=0.2, height_ratios=[3, 1])
+        gs = mpl.gridspec.GridSpec(2, 1, hspace=0.2, height_ratios=[2.5, 1])
 
         # Polar plot
         # ----------------------------------------------------------------------
@@ -312,7 +302,9 @@ def plot_beam_sky_map(
         )
 
         # Plot power contours
-        ax_2D.contour(az, za, powers, contour_levels, colors="k", linewidths=1, zorder=1e2)
+        ax_2D.contour(
+            az, za, powers, contour_levels, colors="k", linewidths=1, zorder=1e2
+        )
 
         # Plot source paths through beam
         for path, ls, col, lab in zip(
@@ -336,7 +328,6 @@ def plot_beam_sky_map(
             loc="upper center",
             bbox_to_anchor=(0.48, 0.975),
             fancybox=True,
-            shadow=True,
             ncol=3,
         )
 
@@ -345,9 +336,14 @@ def plot_beam_sky_map(
         ax_2D.set_rlabel_position(157.5)
         ax_2D.grid(ls=":", color="0.5")
         ax_2D.set_yticks(np.radians([15, 35, 55, 75]))
-        ax_2D.set_yticklabels(["${}^\\circ$".format(int(x)) for x in np.round(np.degrees(ax_2D.get_yticks()), 0)])
-        ax_2D.set_xlabel("Azimuth angle [deg]", labelpad=5)
-        ax_2D.set_ylabel("Zenith angle [deg]", labelpad=30)
+        ax_2D.set_yticklabels(
+            [
+                "${}^\\circ$".format(int(x))
+                for x in np.round(np.degrees(ax_2D.get_yticks()), 0)
+            ]
+        )
+        ax_2D.set_xlabel("Azimuth Angle [deg]", labelpad=5)
+        ax_2D.set_ylabel("Zenith Angle [deg]", labelpad=30)
         ax_2D.tick_params(labelsize=10)
         cbar = plt.colorbar(
             im,
@@ -355,7 +351,7 @@ def plot_beam_sky_map(
             extend="min",
             ticks=[0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
         )
-        cbar.ax.set_ylabel("Zenith-normalised beam power", labelpad=10)
+        cbar.ax.set_ylabel("Zenith-Normalised Beam Power", labelpad=10)
         cbar.ax.tick_params(labelsize=10)
         for contour_level in contour_levels:
             cbar.ax.axhline(contour_level, color="k", lw=1)
@@ -363,7 +359,9 @@ def plot_beam_sky_map(
         # Power vs time plot
         # ----------------------------------------------------------------------
         ax_1D = plt.subplot(gs[1])
-        _, _, _, source_powers, times = beam_coverage[obs_metadata["obsid"]][source_name]
+        _, _, _, source_powers, times = beam_coverage[obs_metadata["obsid"]][
+            source_name
+        ]
         source_power = np.mean(source_powers, axis=1)
 
         ax_1D.errorbar(
@@ -383,14 +381,21 @@ def plot_beam_sky_map(
                 hatch="///",
             )
 
-        ax_1D.set_xlabel("Time since start of observation [s]")
-        ax_1D.set_ylabel("Z.N. beam power")
+        ax_1D.set_xlabel("Elapsed Time [s]")
+        ax_1D.set_ylabel("Z.N. Beam Power")
         ax_1D.set_ylim([0, 1])
         ax_1D.set_xlim([0, obs_metadata["duration"]])
         ax_1D.set_yticks([0, 0.1, 0.5, 0.9, 1.0])
         ax_1D.grid(ls=":", color="0.5")
         ax_1D.yaxis.set_minor_locator(mpl.ticker.MultipleLocator(0.1))
-        ax_1D.tick_params(axis="both", which="both", right=True, top=True, direction="in", labelsize=10)
+        ax_1D.tick_params(
+            axis="both",
+            which="both",
+            right=True,
+            top=True,
+            direction="in",
+            labelsize=10,
+        )
 
         fig_name = f"{obs_metadata['obsid']}_{source_name}_sky_beam_power.png"
         logger.info(f"Saving plot file: {fig_name}")
@@ -405,7 +410,6 @@ def plot_multisource_beam_sky_map(
     pointings: dict,
     min_power: float = None,
     norm_to_zenith: bool = True,
-    logger: logging.Logger = None,
 ) -> None:
     """Plot a figure showing the beam power and power vs time.
 
@@ -428,17 +432,8 @@ def plot_multisource_beam_sky_map(
         If specified, will plot the minimum power on the power vs time plot.
     norm_to_zenith : `bool`, optional
         Whether to normalise the powers to zenith, by default True.
-    logger : `logging.Logger`, optional
-        A custom logger to use, by default None.
     """
-    if logger is None:
-        logger = sf.utils.get_logger()
-
-    az, za, powers = sf.get_beam_power_sky_map(
-        obs_metadata,
-        norm_to_zenith=norm_to_zenith,
-        logger=logger,
-    )
+    az, za, powers = get_beam_power_sky_map(obs_metadata, norm_to_zenith=norm_to_zenith)
 
     # Compute the timestep frames
     start_t = Time(obs_metadata["start_t"], format="gps")
@@ -461,8 +456,8 @@ def plot_multisource_beam_sky_map(
     contour_levels = [0.01, 0.1, 0.5, 0.9]
 
     # Figure setup
-    fig = plt.figure(figsize=(5, 6.5), dpi=300)
-    gs0 = fig.add_gridspec(2, 1, hspace=0.1, height_ratios=[3, 1])
+    fig = plt.figure(figsize=(5, 6.5))
+    gs0 = fig.add_gridspec(2, 1, hspace=0.1, height_ratios=[2.5, 1])
     gs00 = gs0[0]
     gs01 = gs0[1]
 
@@ -489,7 +484,12 @@ def plot_multisource_beam_sky_map(
     for ii, source_radec in enumerate(source_coords):
         path0 = get_source_path(start_t, -3600, 0, source_radec)
         path1 = get_source_path(start_t, 0, obs_metadata["duration"], source_radec)
-        path2 = get_source_path(start_t, obs_metadata["duration"], obs_metadata["duration"] + 3600, source_radec)
+        path2 = get_source_path(
+            start_t,
+            obs_metadata["duration"],
+            obs_metadata["duration"] + 3600,
+            source_radec,
+        )
 
         # Plot source paths through beam
         for path, ls, col, lab, alpha in zip(
@@ -518,9 +518,14 @@ def plot_multisource_beam_sky_map(
     ax_2D.grid(ls=":", color="0.5")
     ax_2D.set_ylim(np.radians([0, 75]))
     ax_2D.set_yticks(np.radians([15, 30, 45, 60]))
-    ax_2D.set_yticklabels(["${}^\\circ$".format(int(x)) for x in np.round(np.degrees(ax_2D.get_yticks()), 0)])
-    ax_2D.set_xlabel("Azimuth angle [deg]", labelpad=5)
-    ax_2D.set_ylabel("Zenith angle [deg]", labelpad=30)
+    ax_2D.set_yticklabels(
+        [
+            "${}^\\circ$".format(int(x))
+            for x in np.round(np.degrees(ax_2D.get_yticks()), 0)
+        ]
+    )
+    ax_2D.set_xlabel("Azimuth Angle [deg]", labelpad=5)
+    ax_2D.set_ylabel("Zenith Angle [deg]", labelpad=30)
     ax_2D.tick_params(axis="both", which="both", direction="in", labelsize=10)
     cbar = plt.colorbar(
         im,
@@ -528,7 +533,7 @@ def plot_multisource_beam_sky_map(
         extend="min",
         ticks=[0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
     )
-    cbar.ax.set_ylabel("Zenith-normalised beam power", labelpad=10)
+    cbar.ax.set_ylabel("Zenith-Normalised Beam Power", labelpad=10)
     cbar.ax.tick_params(labelsize=10)
     for contour_level in contour_levels:
         cbar.ax.axhline(contour_level, color="k", lw=1)
@@ -550,14 +555,6 @@ def plot_multisource_beam_sky_map(
             lw=1,
         )
 
-        start_t, stop_t, _ = sf.plan_obs_times(
-            obs_metadata,
-            source_power,
-            power_dt,
-            1800,
-            logger=logger,
-        )
-
     if min_power is not None:
         ax_1D.fill_between(
             [0, obs_metadata["duration"]],
@@ -568,19 +565,20 @@ def plot_multisource_beam_sky_map(
             hatch="///",
         )
 
-    ax_1D.set_xlabel("Time since start of observation [s]")
-    ax_1D.set_ylabel("Z.N. beam power")
+    ax_1D.set_xlabel("Elapsed Time [s]")
+    ax_1D.set_ylabel("Z.N. Beam Power")
     ax_1D.set_ylim([0, 1])
     ax_1D.set_xlim([0, obs_metadata["duration"]])
     ax_1D.minorticks_on()
     ax_1D.set_yticks([0, 0.1, 0.5, 0.9, 1.0])
     ax_1D.yaxis.set_minor_locator(mpl.ticker.MultipleLocator(0.1))
-    ax_1D.tick_params(axis="both", which="both", right=True, top=True, direction="in", labelsize=10)
+    ax_1D.tick_params(
+        axis="both", which="both", right=True, top=True, direction="in", labelsize=10
+    )
     ax_1D.grid(ls=":", color="0.5")
 
     fig_name = f"{obs_metadata['obsid']}_multisource_sky_beam_power"
     logger.info(f"Saving plot file: {fig_name}.png")
     plt.savefig(fig_name + ".png", bbox_inches="tight")
-    # plt.savefig(fig_name + ".pdf", bbox_inches="tight")
 
     plt.close()

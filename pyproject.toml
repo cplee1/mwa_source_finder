@@ -1,6 +1,6 @@
 [project]
 name = "mwa-source-finder"
-version = "0.4.0"
+version = "0.5.0"
 description = "Find sources in MWA observations"
 authors = [
     { name = "Christopher Lee" },
@@ -15,30 +15,32 @@ dependencies = [
     "cmasher>=1.6.3",
     "matplotlib>=3.7.5",
     "mwa-hyperbeam>=0.9.3",
-    "numpy>=2",
+    "numpy",
     "psrqpy>=1.3",
     "pyyaml>=6.0.2",
-    "ruff>=0.6.4",
     "scipy>=1.10.1",
     "setuptools>=75.8.0",
     "tqdm>=4.66.5",
 ]
 
+[dependency-groups]
+lint = ["ruff"]
+
 [project.scripts]
-source-finder = "mwa_source_finder.applications.source_finder_cli:main"
+source-finder = "mwa_source_finder.apps.source_finder_cli:main"
 
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.ruff]
-line-length = 120
+line-length = 88
 indent-width = 4
 target-version = "py310"
 include = [
     "pyproject.toml",
     "src/mwa_source_finder/*.py",
-    "src/mwa_source_finder/applications/*.py",
+    "src/mwa_source_finder/apps/*.py",
 ]
 
 [tool.ruff.lint]
@@ -52,14 +54,21 @@ select = [
     # isort
     "I",
 ]
-ignore = [
-    # Ignore unused imports
-    "F401",
-    # Ignore wildcard imports
-    "F403",
-]
+
+[tool.ruff.lint.per-file-ignores]
+# Ignore wildcard imports in init files
+"__init__.py" = ["F403"]
+# Ignore unused imports due to cmasher
+"plotting.py" = ["F401"]
+# Ignore line too long
+"file_output.py" = ["E501"]
 
 [tool.ruff.format]
+# Use double quotes for strings
 quote-style = "double"
+# Indent with spaces, rather than tabs
 indent-style = "space"
+# Respect magic trailing commas
+skip-magic-trailing-comma = false
+# Automatically detect the appropriate line ending
 line-ending = "auto"
