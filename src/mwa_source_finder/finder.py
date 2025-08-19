@@ -148,7 +148,7 @@ def find_sources_in_obs(
                     obsids_to_query.append(req_obsid)
             logger.info(
                 f"{len(obsids) - len(obsids_to_query)} obs IDs loaded from "
-                + "cache file: {cache_file}"
+                + f"cache file: {cache_file}"
             )
 
     # Only query the obs IDs which aren't in the cache
