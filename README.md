@@ -24,17 +24,18 @@ Once installed, the CLI can be accessed with `source-finder`. Refer to the help
 menu (`-h`) for details on its usage and the option defaults.
 
 The basic usage is as follows. The options in square brackets are the plot types
-available. To search for all pulsars in an observation, run
+available. To search for pulsars in an observation, run
 
     source-finder -o <obs ID> [--time_plot] [--beam_plot]
 
-To search for all observations with a given source in it, run
+To search for observations with a given source in it, run
 
-    source-finder -s <source> --obs_for_source [--time_plot] [--beam_plot]
+    source-finder -s <source> --obs_for_source [--smart ] [--time_plot] [--beam_plot]
 
 where the `-s` option accepts either pulsar names or `RA_DEC` coordinates.
 The `-o` and `-s` options can also be used together to search for one or more
-sources within one or more observations.
+sources within one or more observations. The `--smart` option limits the search
+to only SMART survey observations.
 
 ### Tips
 By default, using `--obs_for_source` without any specified obs IDs will search
