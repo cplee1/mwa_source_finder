@@ -82,8 +82,11 @@ def plot_power_vs_time(
     beam_coverage: dict,
     min_power: float,
     obs_for_source: bool = False,
-) -> None:
-    """Make a plot of power vs time showing each obs ID for a source.
+    filter_min_time: float | None = None,
+    save: bool = True,
+) -> list:
+    """Make a plot of power vs time showing each obs ID for a source or vice
+    versa.
 
     Parameters
     ----------
@@ -100,16 +103,29 @@ def plot_power_vs_time(
         The minimum power to count as in the beam.
     obs_for_source : `bool`, optional
         Whether to search for observations for each source, by default False.
+    filter_min_time : `str`, optional
+        Exclude obs IDs for which the source is in the beam for less than this
+        duration of time in seconds, or vice versa.
+    save : `bool`, optional
+        Whether to save the plot. Default: True.
+
+    Returns
+    -------
+    obs_to_del : `list`
+        A list of unused obs IDs.
     """
     line_combos = []
     for lsi in LINE_STYLES:
         for coli in list(mcolors.TABLEAU_COLORS):
             line_combos.append([lsi, coli])
 
+    obs_to_del = []
+    early_break = False
     if obs_for_source:
         # Plot of power vs time for each observation, one plot per source
         for source_name in source_names:
             max_duration = 0
+            num_obs = 0
 
             fig = plt.figure(figsize=(8, 4))
             ax = fig.add_subplot(111)
@@ -119,16 +135,27 @@ def plot_power_vs_time(
                     obs_duration = all_obs_metadata[obsid]["duration"]
                     if obs_duration > max_duration:
                         max_duration = obs_duration
-                    _, _, _, powers, times = beam_coverage[obsid][source_name]
+                    beam_enter, beam_exit, _, powers, times = beam_coverage[obsid][
+                        source_name
+                    ]
 
-                    # Plot powers
+                    # Filter by min time in beam
+                    if filter_min_time:
+                        time_in_beam = (beam_exit - beam_enter) * obs_duration
+                        if time_in_beam < filter_min_time:
+                            obs_to_del.append(obsid)
+                            continue
+
+                    # Any plot with this many obs IDs will be unreadable
                     if ii >= len(line_combos):
                         logger.error(
                             f"Source {source_name}: Too many obs IDs to make a "
                             + "power vs time plot. Skipping."
                         )
-                        return
+                        early_break = True
+                        break
 
+                    # Plot powers
                     for ifreq in range(powers.shape[1]):
                         label = None
                         if ifreq == 0:
@@ -140,6 +167,15 @@ def plot_power_vs_time(
                             c=line_combos[ii][1],
                             label=label,
                         )
+
+                    num_obs += 1
+
+            if early_break:
+                early_break = False
+                continue
+
+            if num_obs == 0:
+                continue
 
             ax.fill_between(
                 [0, max_duration],
@@ -159,20 +195,30 @@ def plot_power_vs_time(
             fig.suptitle(f"Source: {source_name.replace('-', '$-$')}")
 
             # Save fig
-            plot_name = f"{source_name}_power_vs_time.png"
-            logger.info(f"Saving plot file: {plot_name}")
-            fig.savefig(plot_name, bbox_inches="tight")
+            if save:
+                plot_name = f"{source_name}_power_vs_time.png"
+                logger.info(f"Saving plot file: {plot_name}")
+                fig.savefig(plot_name, bbox_inches="tight")
             plt.close()
     else:
         # Plot of power vs time for each source, one plot per observation
         for obsid in all_obs_metadata:
             max_duration = all_obs_metadata[obsid]["duration"]
+            num_src = 0
 
             fig = plt.figure(figsize=(8, 4))
             ax = fig.add_subplot(111)
 
             for ii, source_name in enumerate(beam_coverage[obsid]):
-                _, _, _, powers, times = beam_coverage[obsid][source_name]
+                beam_enter, beam_exit, _, powers, times = beam_coverage[obsid][
+                    source_name
+                ]
+
+                # Filter by min time in beam
+                if filter_min_time:
+                    time_in_beam = (beam_exit - beam_enter) * max_duration
+                    if time_in_beam < filter_min_time:
+                        continue
 
                 # Plot powers
                 if ii >= len(line_combos):
@@ -180,7 +226,8 @@ def plot_power_vs_time(
                         f"Obs ID {obsid}: Too many sources to make a "
                         + "power vs time plot. Skipping."
                     )
-                    return
+                    early_break = True
+                    break
 
                 for ifreq in range(powers.shape[1]):
                     label = None
@@ -193,6 +240,16 @@ def plot_power_vs_time(
                         c=line_combos[ii][1],
                         label=label,
                     )
+
+                num_src += 1
+
+            if early_break:
+                early_break = False
+                continue
+
+            if num_src == 0:
+                obs_to_del.append(obsid)
+                continue
 
             ax.fill_between(
                 [0, max_duration],
@@ -212,10 +269,13 @@ def plot_power_vs_time(
             fig.suptitle(f"Obs ID: {obsid}")
 
             # Save fig
-            plot_name = f"{obsid}_power_vs_time.png"
-            logger.info(f"Saving plot file: {plot_name}")
-            fig.savefig(plot_name, bbox_inches="tight")
+            if save:
+                plot_name = f"{obsid}_power_vs_time.png"
+                logger.info(f"Saving plot file: {plot_name}")
+                fig.savefig(plot_name, bbox_inches="tight")
             plt.close()
+
+    return obs_to_del
 
 
 def plot_beam_sky_map(

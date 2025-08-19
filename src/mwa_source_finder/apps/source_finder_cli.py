@@ -186,6 +186,12 @@ def main():
     #     + "zenith. 'beam' will normalise to the peak of the primary beam.",
     # )
     finder_args.add_argument(
+        "--min_time",
+        type=float,
+        default=None,
+        help="Minimum time spent in the beam.",
+    )
+    finder_args.add_argument(
         "--freq_mode",
         type=str,
         choices=["low", "centre", "high", "multi"],
@@ -382,6 +388,7 @@ def main():
             norm_mode,
             args.min_power,
             obs_plan=obs_plan,
+            filter_min_time=args.min_time,
         )
     else:
         write_output_obs_files(
@@ -391,17 +398,19 @@ def main():
             args.end,
             norm_mode,
             args.min_power,
-            args.condition,
+            condition=args.condition,
+            filter_min_time=args.min_time,
         )
 
-    if args.time_plot:
-        plot_power_vs_time(
-            pointings.keys(),
-            all_obs_metadata,
-            beam_coverage,
-            args.min_power,
-            args.obs_for_source,
-        )
+    obs_to_del = plot_power_vs_time(
+        pointings.keys(),
+        all_obs_metadata,
+        beam_coverage,
+        args.min_power,
+        args.obs_for_source,
+        filter_min_time=args.min_time,
+        save=args.time_plot,
+    )
 
     if args.beam_plot or args.ms_beam_plot:
         # Ensure finder results are in source-for-obs format
@@ -411,6 +420,9 @@ def main():
             obs_finder_results = finder_results
 
         for obsid in all_obs_metadata:
+            if obsid in obs_to_del:
+                continue
+
             obs_metadata = all_obs_metadata[obsid]
 
             if args.beam_plot:
