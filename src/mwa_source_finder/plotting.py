@@ -156,7 +156,7 @@ def plot_power_vs_time(
                 fancybox=True,
                 ncol=3,
             )
-            fig.suptitle(f"Source: {source_name}")
+            fig.suptitle(f"Source: {source_name.replace('-', '$-$')}")
 
             # Save fig
             plot_name = f"{source_name}_power_vs_time.png"
@@ -282,7 +282,11 @@ def plot_beam_sky_map(
 
         # Figure setup
         fig = plt.figure(figsize=(5, 6.5))
-        fig.suptitle(f"Obs ID: {obs_metadata['obsid']}   Source: {source_name}", y=1.02)
+        fig.suptitle(
+            f"Obs ID: {obs_metadata['obsid']}   "
+            + f"Source: {source_name.replace('-', '$-$')}",
+            y=1.02,
+        )
         gs = mpl.gridspec.GridSpec(2, 1, hspace=0.2, height_ratios=[2.5, 1])
 
         # Polar plot
