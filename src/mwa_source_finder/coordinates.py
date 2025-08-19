@@ -200,7 +200,9 @@ def sexigesimal_to_decimal(raj: str, decj: str) -> Tuple[float, float]:
 
 def equatorial_to_horizontal(
     rajd: Union[float, np.ndarray], decjd: Union[float, np.ndarray], gps_epoch: float
-) -> Tuple[Union[float, np.ndarray], Union[float, np.ndarray], Union[float, np.ndarray]]:
+) -> Tuple[
+    Union[float, np.ndarray], Union[float, np.ndarray], Union[float, np.ndarray]
+]:
     """Convert equatorial (RA/DEC) to horizontal (Alt/Az) coordinates.
 
     Parameters
@@ -230,7 +232,9 @@ def equatorial_to_horizontal(
     return alt, az, za
 
 
-def get_pulsar_coords(pulsar: str, query: psrqpy.QueryATNF) -> Tuple[str, str, float, float]:
+def get_pulsar_coords(
+    pulsar: str, query: psrqpy.QueryATNF
+) -> Tuple[str, str, float, float]:
     """Get pulsar coordinates, period, and DM from a psrqpy query.
 
     Parameters
@@ -360,7 +364,8 @@ def get_pointings(sources: list, condition: str = None) -> dict:
     if query_flag:
         logger.debug("Querying the pulsar catalogue")
         query = psrqpy.QueryATNF(
-            params=["PSRJ", "PSRB", "RAJ", "DECJ", "RAJD", "DECJD", "DM", "P0"], condition=condition
+            params=["PSRJ", "PSRB", "RAJ", "DECJ", "RAJD", "DECJD", "DM", "P0"],
+            condition=condition,
         )
         logger.info(f"Using ATNF pulsar catalogue version {query.get_version}")
     # Loop through all sources, get pointings and add them to dictionaries
@@ -376,7 +381,9 @@ def get_pointings(sources: list, condition: str = None) -> dict:
             logger.error(f"Source not recognised: {source}")
         if raj is None:
             continue
-        pointing = dict(name=source, RAJ=raj, DECJ=decj, RAJD=rajd, DECJD=decjd, DM=dm, P0=p0)
+        pointing = dict(
+            name=source, RAJ=raj, DECJ=decj, RAJD=rajd, DECJD=decjd, DM=dm, P0=p0
+        )
         pointings[source] = pointing
     return pointings
 
@@ -396,7 +403,9 @@ def get_atnf_pulsars(condition: str = None) -> dict:
         by source name.
     """
     logger.debug("Querying the pulsar catalogue")
-    query = psrqpy.QueryATNF(params=["PSRJ", "RAJ", "DECJ", "RAJD", "DECJD", "DM", "P0"], condition=condition)
+    query = psrqpy.QueryATNF(
+        params=["PSRJ", "RAJ", "DECJ", "RAJD", "DECJD", "DM", "P0"], condition=condition
+    )
     logger.info(f"Using ATNF pulsar catalogue version {query.get_version}")
     psrjs = list(query.table["PSRJ"])
     rajs = list(query.table["RAJ"])
@@ -407,12 +416,16 @@ def get_atnf_pulsars(condition: str = None) -> dict:
     p0s = list(query.table["P0"] * 1e3)
     # Loop through all the pulsars and store the pointings in dictionaries
     pointings = dict()
-    for psrj, raj, decj, rajd, decjd, dm, p0 in zip(psrjs, rajs, decjs, rajds, decjds, dms, p0s, strict=True):
+    for psrj, raj, decj, rajd, decjd, dm, p0 in zip(
+        psrjs, rajs, decjs, rajds, decjds, dms, p0s, strict=True
+    ):
         if raj == "" or decj == "":
             logger.debug(f"Incomplete catalogued coordinates for PSR {psrj}")
             continue
         raj = _format_sexigesimal(raj)
         decj = _format_sexigesimal(decj, add_sign=True)
-        pointing = dict(name=psrj, RAJ=raj, DECJ=decj, RAJD=rajd, DECJD=decjd, DM=dm, P0=p0)
+        pointing = dict(
+            name=psrj, RAJ=raj, DECJ=decj, RAJD=rajd, DECJD=decjd, DM=dm, P0=p0
+        )
         pointings[psrj] = pointing
     return pointings

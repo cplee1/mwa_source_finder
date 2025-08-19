@@ -12,7 +12,9 @@ __all__ = [
 TEL_LAT = -26.703319
 TEL_LON = 116.67081
 TEL_ELEV = 377.827
-TEL_LOCATION = EarthLocation(lat=TEL_LAT * u.deg, lon=TEL_LON * u.deg, height=TEL_ELEV * u.m)
+TEL_LOCATION = EarthLocation(
+    lat=TEL_LAT * u.deg, lon=TEL_LON * u.deg, height=TEL_ELEV * u.m
+)
 LINE_STYLES = [
     "-",
     "--",

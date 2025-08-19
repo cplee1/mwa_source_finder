@@ -106,8 +106,8 @@ def get_beam_power_vs_time(
     norm_to_zenith : `bool`, optional
         Whether to normalise the powers to zenith, by default True.
     freq_mode : `str`, optional
-        The frequency to use to compute the beam power ['low', 'centre', 'high', 'multi'],
-        by default 'centre'.
+        The frequency to use to compute the beam power ['low', 'centre', 'high',
+        'multi'], by default 'centre'.
     freq_samples : `int`, optional
         If in multifreq mode, compute this many samples over the observing band,
         by default 10.
@@ -172,7 +172,9 @@ def get_beam_power_vs_time(
     for itime, time in enumerate(times):
         idx_start = itime
         idx_end = itime + num_coords
-        _, Azs[idx_start:idx_end:idx_step], ZAs[idx_start:idx_end:idx_step] = equatorial_to_horizontal(RAs, DECs, time)
+        _, Azs[idx_start:idx_end:idx_step], ZAs[idx_start:idx_end:idx_step] = (
+            equatorial_to_horizontal(RAs, DECs, time)
+        )
 
     powers_temp = np.zeros(num_coords, dtype=float)
     powers = np.empty(shape=(len(pointings), len(times), len(freqs)), dtype=float)
@@ -318,8 +320,8 @@ def source_beam_coverage(
     min_power : `float`, optional
         The minimum normalised power to count as in the beam, by default 0.3.
     freq_mode : `str`, optional
-        The frequency to use to compute the beam power ['low', 'centre', 'high', 'multi'],
-        by default 'centre'.
+        The frequency to use to compute the beam power ['low', 'centre', 'high',
+        'multi'], by default 'centre'.
     freq_samples : `int`, optional
         If in multifreq mode, compute this many samples over the observing band,
         by default 10.
@@ -375,7 +377,9 @@ def source_beam_coverage(
 
         logger.debug(f"Obs ID {obsid}: Getting enter and exit times")
         # Use only the lowest frequency in the powers array
-        for isource, (source_power, source_name) in enumerate(zip(powers[:, :, 0], pointings, strict=True)):
+        for isource, (source_power, source_name) in enumerate(
+            zip(powers[:, :, 0], pointings, strict=True)
+        ):
             if np.max(source_power) > min_power:
                 beam_enter, beam_exit = beam_enter_exit(
                     source_power,

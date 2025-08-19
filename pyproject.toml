@@ -34,7 +34,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.ruff]
-line-length = 120
+line-length = 88
 indent-width = 4
 target-version = "py310"
 include = [
@@ -60,6 +60,8 @@ select = [
 "__init__.py" = ["F403"]
 # Ignore unused imports due to cmasher
 "plotting.py" = ["F401"]
+# Ignore line too long
+"file_output.py" = ["E501"]
 
 [tool.ruff.format]
 # Use double quotes for strings

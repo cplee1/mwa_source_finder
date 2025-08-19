@@ -64,9 +64,15 @@ def get_metadata(
     result = None
     for _ in range(0, retries):
         try:
-            result = json.load(urllib.request.urlopen(BASEURL + servicetype + "/" + service + "?" + data))
+            result = json.load(
+                urllib.request.urlopen(
+                    BASEURL + servicetype + "/" + service + "?" + data
+                )
+            )
         except urllib.error.HTTPError as err:
-            logger.error(f"HTTP error from server: code={err.code}, response: {err.read()}")
+            logger.error(
+                f"HTTP error from server: code={err.code}, response: {err.read()}"
+            )
             if retry_http_error:
                 logger.error(f"Waiting {wait_time} seconds and trying again")
                 time.sleep(wait_time)
@@ -231,7 +237,9 @@ def check_obsid_cache(dir: str = None, root: str = "sf_obsid_cache") -> Optional
         return None
 
 
-def save_as_yaml(data_dict: dict, dir: str = None, root: str = "sf_obsid_cache") -> None:
+def save_as_yaml(
+    data_dict: dict, dir: str = None, root: str = "sf_obsid_cache"
+) -> None:
     """Save a dictionary as a yaml file.
 
     Parameters

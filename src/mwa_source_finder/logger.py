@@ -43,7 +43,9 @@ def setup_logger(name: str | None = None, log_level: str | int = "INFO") -> None
     ch.setLevel(log_level)
 
     # Set the formatter of ch
-    formatter = logging.Formatter(fmt="[%(asctime)s %(levelname)-8s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+    formatter = logging.Formatter(
+        fmt="[%(asctime)s %(levelname)-8s] %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+    )
     ch.setFormatter(formatter)
 
     # Add ch to logger

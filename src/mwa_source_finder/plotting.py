@@ -131,7 +131,10 @@ def plot_power_vs_time(
 
                     # Plot powers
                     if ii >= len(line_combos):
-                        logger.error(f"Source {source_name}: Too many obs IDs to make a power vs time plot. Skipping.")
+                        logger.error(
+                            f"Source {source_name}: Too many obs IDs to make a "
+                            + "power vs time plot. Skipping."
+                        )
                         return
 
                     for ifreq in range(powers.shape[1]):
@@ -182,7 +185,10 @@ def plot_power_vs_time(
 
                 # Plot powers
                 if ii >= len(line_combos):
-                    logger.error(f"Obs ID {obsid}: Too many sources to make a power vs time plot. Skipping.")
+                    logger.error(
+                        f"Obs ID {obsid}: Too many sources to make a "
+                        + "power vs time plot. Skipping."
+                    )
                     return
 
                 for ifreq in range(powers.shape[1]):
@@ -277,7 +283,12 @@ def plot_beam_sky_map(
     for source_name, source_radec in zip(source_names, source_coords, strict=True):
         path0 = get_source_path(start_t, -3600, 0, source_radec)
         path1 = get_source_path(start_t, 0, obs_metadata["duration"], source_radec)
-        path2 = get_source_path(start_t, obs_metadata["duration"], obs_metadata["duration"] + 3600, source_radec)
+        path2 = get_source_path(
+            start_t,
+            obs_metadata["duration"],
+            obs_metadata["duration"] + 3600,
+            source_radec,
+        )
 
         # Figure setup
         fig = plt.figure(figsize=(5, 6.5), dpi=200)
@@ -301,7 +312,9 @@ def plot_beam_sky_map(
         )
 
         # Plot power contours
-        ax_2D.contour(az, za, powers, contour_levels, colors="k", linewidths=1, zorder=1e2)
+        ax_2D.contour(
+            az, za, powers, contour_levels, colors="k", linewidths=1, zorder=1e2
+        )
 
         # Plot source paths through beam
         for path, ls, col, lab in zip(
@@ -334,7 +347,12 @@ def plot_beam_sky_map(
         ax_2D.set_rlabel_position(157.5)
         ax_2D.grid(ls=":", color="0.5")
         ax_2D.set_yticks(np.radians([15, 35, 55, 75]))
-        ax_2D.set_yticklabels(["${}^\\circ$".format(int(x)) for x in np.round(np.degrees(ax_2D.get_yticks()), 0)])
+        ax_2D.set_yticklabels(
+            [
+                "${}^\\circ$".format(int(x))
+                for x in np.round(np.degrees(ax_2D.get_yticks()), 0)
+            ]
+        )
         ax_2D.set_xlabel("Azimuth angle [deg]", labelpad=5)
         ax_2D.set_ylabel("Zenith angle [deg]", labelpad=30)
         ax_2D.tick_params(labelsize=10)
@@ -352,7 +370,9 @@ def plot_beam_sky_map(
         # Power vs time plot
         # ----------------------------------------------------------------------
         ax_1D = plt.subplot(gs[1])
-        _, _, _, source_powers, times = beam_coverage[obs_metadata["obsid"]][source_name]
+        _, _, _, source_powers, times = beam_coverage[obs_metadata["obsid"]][
+            source_name
+        ]
         source_power = np.mean(source_powers, axis=1)
 
         ax_1D.errorbar(
@@ -379,7 +399,14 @@ def plot_beam_sky_map(
         ax_1D.set_yticks([0, 0.1, 0.5, 0.9, 1.0])
         ax_1D.grid(ls=":", color="0.5")
         ax_1D.yaxis.set_minor_locator(mpl.ticker.MultipleLocator(0.1))
-        ax_1D.tick_params(axis="both", which="both", right=True, top=True, direction="in", labelsize=10)
+        ax_1D.tick_params(
+            axis="both",
+            which="both",
+            right=True,
+            top=True,
+            direction="in",
+            labelsize=10,
+        )
 
         fig_name = f"{obs_metadata['obsid']}_{source_name}_sky_beam_power.png"
         logger.info(f"Saving plot file: {fig_name}")
@@ -468,7 +495,12 @@ def plot_multisource_beam_sky_map(
     for ii, source_radec in enumerate(source_coords):
         path0 = get_source_path(start_t, -3600, 0, source_radec)
         path1 = get_source_path(start_t, 0, obs_metadata["duration"], source_radec)
-        path2 = get_source_path(start_t, obs_metadata["duration"], obs_metadata["duration"] + 3600, source_radec)
+        path2 = get_source_path(
+            start_t,
+            obs_metadata["duration"],
+            obs_metadata["duration"] + 3600,
+            source_radec,
+        )
 
         # Plot source paths through beam
         for path, ls, col, lab, alpha in zip(
@@ -497,7 +529,12 @@ def plot_multisource_beam_sky_map(
     ax_2D.grid(ls=":", color="0.5")
     ax_2D.set_ylim(np.radians([0, 75]))
     ax_2D.set_yticks(np.radians([15, 30, 45, 60]))
-    ax_2D.set_yticklabels(["${}^\\circ$".format(int(x)) for x in np.round(np.degrees(ax_2D.get_yticks()), 0)])
+    ax_2D.set_yticklabels(
+        [
+            "${}^\\circ$".format(int(x))
+            for x in np.round(np.degrees(ax_2D.get_yticks()), 0)
+        ]
+    )
     ax_2D.set_xlabel("Azimuth angle [deg]", labelpad=5)
     ax_2D.set_ylabel("Zenith angle [deg]", labelpad=30)
     ax_2D.tick_params(axis="both", which="both", direction="in", labelsize=10)
@@ -553,7 +590,9 @@ def plot_multisource_beam_sky_map(
     ax_1D.minorticks_on()
     ax_1D.set_yticks([0, 0.1, 0.5, 0.9, 1.0])
     ax_1D.yaxis.set_minor_locator(mpl.ticker.MultipleLocator(0.1))
-    ax_1D.tick_params(axis="both", which="both", right=True, top=True, direction="in", labelsize=10)
+    ax_1D.tick_params(
+        axis="both", which="both", right=True, top=True, direction="in", labelsize=10
+    )
     ax_1D.grid(ls=":", color="0.5")
 
     fig_name = f"{obs_metadata['obsid']}_multisource_sky_beam_power"

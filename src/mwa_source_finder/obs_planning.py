@@ -32,7 +32,9 @@ def _round_down(time: float, chunksize: float = 8.0) -> float:
     return time - (time % chunksize)
 
 
-def plan_obs_times(obs_metadata: dict, power: np.ndarray, times: np.ndarray, obs_length: float) -> Tuple[float, float]:
+def plan_obs_times(
+    obs_metadata: dict, power: np.ndarray, times: np.ndarray, obs_length: float
+) -> Tuple[float, float]:
     """For arrays of power vs time, find obs_length seconds where the power is
     the highest, and return the start and stop times.
 
@@ -100,7 +102,10 @@ def plan_obs_times(obs_metadata: dict, power: np.ndarray, times: np.ndarray, obs
 
 
 def find_best_obs_times_for_sources(
-    source_names: list, all_obs_metadata: dict, beam_coverage: dict, obs_length: float = None
+    source_names: list,
+    all_obs_metadata: dict,
+    beam_coverage: dict,
+    obs_length: float = None,
 ) -> dict:
     """Find the best observation for each source, based on the mean power level,
     then return the optimal start and stop times of an observation of obs_length
@@ -155,7 +160,9 @@ def find_best_obs_times_for_sources(
                 obsids.append(obsid)
 
         if len(mean_powers) == 0:
-            logger.info(f"No obs IDs found for source {source}. Omitting from download plan.")
+            logger.info(
+                f"No obs IDs found for source {source}. Omitting from download plan."
+            )
             continue
 
         # Get beam coverage and metadata of best observation
@@ -232,7 +239,9 @@ def plan_data_download(obs_plan: dict, savename: str = None) -> list:
                 for source in sources:
                     enter_time = _round_down(source[1], 8)
                     exit_time = _round_down(source[2], 8)
-                    source_info.append(f"{source[0]}@{enter_time:04.0f}-{exit_time:04.0f}")
+                    source_info.append(
+                        f"{source[0]}@{enter_time:04.0f}-{exit_time:04.0f}"
+                    )
                 writer.writerow(
                     [
                         obsid,

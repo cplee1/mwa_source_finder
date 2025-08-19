@@ -7,7 +7,12 @@ from tqdm import tqdm
 
 from .beam import source_beam_coverage
 from .coordinates import get_atnf_pulsars, get_pointings
-from .observations import check_obsid_cache, get_all_obsids, get_common_metadata, save_as_yaml
+from .observations import (
+    check_obsid_cache,
+    get_all_obsids,
+    get_common_metadata,
+    save_as_yaml,
+)
 
 __all__ = ["find_sources_in_obs"]
 
@@ -55,8 +60,8 @@ def find_sources_in_obs(
     min_power : `float`, optional
         The minimum normalised power to count as in the beam, by default 0.3.
     freq_mode : `str`, optional
-        The frequency to use to compute the beam power ['low', 'centre', 'high'],
-        by default 'centre'.
+        The frequency to use to compute the beam power ['low', 'centre',
+        'high'], by default 'centre'.
     freq_samples : `int`, optional
         If in multifreq mode, compute this many samples over the observing band,
         by default 10.
@@ -95,7 +100,9 @@ def find_sources_in_obs(
         for source_name in pointings:
             pointing = pointings[source_name]
             logger.info(
-                f"Source: {pointing['name']:30} " + f"RAJ: {pointing['RAJ']:14} " + f"DECJ: {pointing['DECJ']:15}"
+                f"Source: {pointing['name']:30} "
+                + f"RAJ: {pointing['RAJ']:14} "
+                + f"DECJ: {pointing['DECJ']:15}"
             )
     else:
         logger.info("Collecting pulsars from the ATNF catalogue...")
@@ -133,11 +140,16 @@ def find_sources_in_obs(
                 for cached_obsid in cached_obs_metadata.keys():
                     if cached_obsid == req_obsid:
                         req_obsid_found = True
-                        all_obs_metadata[cached_obsid] = cached_obs_metadata[cached_obsid]
+                        all_obs_metadata[cached_obsid] = cached_obs_metadata[
+                            cached_obsid
+                        ]
                         break
                 if not req_obsid_found:
                     obsids_to_query.append(req_obsid)
-            logger.info(f"{len(obsids) - len(obsids_to_query)} obs IDs loaded from cache file: {cache_file}")
+            logger.info(
+                f"{len(obsids) - len(obsids_to_query)} obs IDs loaded from "
+                + "cache file: {cache_file}"
+            )
 
     # Only query the obs IDs which aren't in the cache
     if len(obsids_to_query) > 0:
@@ -186,7 +198,9 @@ def find_sources_in_obs(
             source_data = []
             for obsid in obsids:
                 if source_name in beam_coverage[obsid]:
-                    enter_beam, exit_beam, max_power, _, _ = beam_coverage[obsid][source_name]
+                    enter_beam, exit_beam, max_power, _, _ = beam_coverage[obsid][
+                        source_name
+                    ]
                     source_data.append([obsid, enter_beam, exit_beam, max_power])
             finder_results[source_name] = source_data
     else:
@@ -199,8 +213,12 @@ def find_sources_in_obs(
                 if "P0" in pointings[source_name]:
                     p0 = pointings[source_name]["P0"]
                 if source_name in beam_coverage[obsid]:
-                    enter_beam, exit_beam, max_power, _, _ = beam_coverage[obsid][source_name]
-                    obsid_data.append([source_name, enter_beam, exit_beam, max_power, dm, p0])
+                    enter_beam, exit_beam, max_power, _, _ = beam_coverage[obsid][
+                        source_name
+                    ]
+                    obsid_data.append(
+                        [source_name, enter_beam, exit_beam, max_power, dm, p0]
+                    )
             finder_results[obsid] = obsid_data
 
     return finder_results, beam_coverage, pointings, all_obs_metadata

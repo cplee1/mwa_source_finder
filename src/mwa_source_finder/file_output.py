@@ -241,9 +241,13 @@ def invert_finder_results(finder_results: dict, obs_for_source: bool = True) -> 
                     new_finder_results[obsid] = []
 
                 if len(obsid_data) == 4:
-                    new_finder_results[obsid].append([source, enter_beam, exit_beam, max_power])
+                    new_finder_results[obsid].append(
+                        [source, enter_beam, exit_beam, max_power]
+                    )
                 else:
-                    new_finder_results[obsid].append([source, enter_beam, exit_beam, max_power, dur, fctr, bw])
+                    new_finder_results[obsid].append(
+                        [source, enter_beam, exit_beam, max_power, dur, fctr, bw]
+                    )
     else:
         for obsid in finder_results:
             finder_result = finder_results[obsid]
@@ -251,6 +255,8 @@ def invert_finder_results(finder_results: dict, obs_for_source: bool = True) -> 
                 source, enter_beam, exit_beam, max_power = source_data
                 if source not in new_finder_results:
                     new_finder_results[source] = []
-                new_finder_results[source].append([obsid, enter_beam, exit_beam, max_power])
+                new_finder_results[source].append(
+                    [obsid, enter_beam, exit_beam, max_power]
+                )
 
     return new_finder_results
