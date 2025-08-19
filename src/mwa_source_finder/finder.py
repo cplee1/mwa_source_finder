@@ -29,7 +29,7 @@ def find_sources_in_obs(
     filter_available: bool = False,
     input_dt: float = 60.0,
     norm_mode: str = "zenith",
-    min_power: float = 0.3,
+    min_power: float = 0.2,
     freq_mode: str = "centre",
     freq_samples: int = 10,
     no_cache: bool = False,
@@ -58,7 +58,7 @@ def find_sources_in_obs(
     norm_mode : `str`, optional
         The normalisation mode ['zenith', 'beam'], by default 'zenith'.
     min_power : `float`, optional
-        The minimum normalised power to count as in the beam, by default 0.3.
+        The minimum normalised power to count as in the beam, by default 0.2.
     freq_mode : `str`, optional
         The frequency to use to compute the beam power ['low', 'centre',
         'high'], by default 'centre'.

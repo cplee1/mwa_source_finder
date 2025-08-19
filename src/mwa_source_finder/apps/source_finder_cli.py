@@ -2,6 +2,7 @@ import argparse
 import logging
 import sys
 
+from mwa_source_finder.constants import SMART_OBSIDS
 from mwa_source_finder.file_output import (
     invert_finder_results,
     write_output_obs_files,
@@ -121,6 +122,11 @@ def main():
         + "listed on a new line.",
     )
     obs_args.add_argument(
+        "--smart",
+        action="store_true",
+        help="Search all SMART obs IDs.",
+    )
+    obs_args.add_argument(
         "--start",
         type=float,
         default=0.0,
@@ -168,7 +174,7 @@ def main():
     finder_args.add_argument(
         "--min_power",
         type=float,
-        default=0.3,
+        default=0.2,
         help="Minimum normalised power to count as in the beam.",
     )
     # finder_args.add_argument(
@@ -249,6 +255,7 @@ def main():
         and not args.sources_file
         and not args.obsids
         and not args.obsids_file
+        and not args.smart
         and not args.source_for_all_obs
     ):
         logger.error("No sources or observations specified.")
@@ -270,6 +277,7 @@ def main():
     if (
         args.obsids is None
         and args.obsids_file is None
+        and not args.smart
         and not args.obs_for_source
         and not args.source_for_all_obs
     ):
@@ -286,12 +294,12 @@ def main():
 
     if not args.obs_for_source and args.plan_obs_length:
         logger.warning(
-            "The --plan_obs_length option will do nothing in " + "source-for-obs mode."
+            "The --plan_obs_length option will do nothing in source-for-obs mode."
         )
 
     if not args.obs_for_source and args.download_plan:
         logger.warning(
-            "The --download_plan option will do nothing in " + "source-for-obs mode."
+            "The --download_plan option will do nothing in source-for-obs mode."
         )
 
     # Get sources from command line, if specified
@@ -308,7 +316,7 @@ def main():
         sources = None
 
     # Get obs IDs from command line, if specified
-    if args.obsids or args.obsids_file:
+    if args.obsids or args.obsids_file or args.smart:
         if args.obsids:
             obsids = [str(obsid) for obsid in args.obsids]
             logger.info(f"{len(obsids)} obs IDs parsed from command line")
@@ -323,6 +331,11 @@ def main():
                 obsids += obsids_from_file
             else:
                 obsids = obsids_from_file
+        if args.smart:
+            if obsids:
+                obsids += SMART_OBSIDS
+            else:
+                obsids = SMART_OBSIDS
     else:
         obsids = None
 

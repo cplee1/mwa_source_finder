@@ -236,7 +236,7 @@ def beam_enter_exit(
     powers: np.ndarray,
     times: np.ndarray,
     duration: float,
-    min_power: float = 0.3,
+    min_power: float = 0.2,
 ) -> Tuple[float, float]:
     """Find where a source enters and exits the beam.
 
@@ -249,7 +249,7 @@ def beam_enter_exit(
     duration : `float`
         The length of time searched in the observation.
     min_power : `float`, optional
-        The minimum power to count as in the beam. By default 0.3.
+        The minimum power to count as in the beam. By default 0.2.
 
     Returns
     -------
@@ -290,7 +290,7 @@ def source_beam_coverage(
     t_end: float = 1.0,
     input_dt: float = 60.0,
     norm_mode: str = "zenith",
-    min_power: float = 0.3,
+    min_power: float = 0.2,
     freq_mode: str = "centre",
     freq_samples: int = 10,
 ) -> Tuple[dict, dict]:
@@ -318,7 +318,7 @@ def source_beam_coverage(
     norm_mode : `str`, optional
         The normalisation mode, by default 'zenith'.
     min_power : `float`, optional
-        The minimum normalised power to count as in the beam, by default 0.3.
+        The minimum normalised power to count as in the beam, by default 0.2.
     freq_mode : `str`, optional
         The frequency to use to compute the beam power ['low', 'centre', 'high',
         'multi'], by default 'centre'.
