@@ -1,7 +1,14 @@
 import argparse
+import logging
 import sys
 
-import mwa_source_finder as sf
+from mwa_source_finder.file_output import invert_finder_results, write_output_obs_files, write_output_source_files
+from mwa_source_finder.finder import find_sources_in_obs
+from mwa_source_finder.logger import log_levels, setup_logger
+from mwa_source_finder.obs_planning import find_best_obs_times_for_sources, plan_data_download
+from mwa_source_finder.plotting import plot_beam_sky_map, plot_multisource_beam_sky_map, plot_power_vs_time
+
+logger = logging.getLogger(__name__)
 
 
 def load_items_from_file(filename: str) -> list:
@@ -34,7 +41,6 @@ def main():
         description="Find sources in MWA VCS observations.",
         add_help=False,
     )
-    loglevels = sf.utils.get_log_levels()
 
     # Program arguments
     optional = parser.add_argument_group("Program arguments")
@@ -43,7 +49,7 @@ def main():
         "-L",
         "--loglvl",
         type=str,
-        choices=loglevels,
+        choices=log_levels.keys(),
         default="INFO",
         help="Logger verbosity level.",
     )
@@ -217,8 +223,7 @@ def main():
 
     args = parser.parse_args()
 
-    # Initialise the logger
-    logger = sf.utils.get_logger(log_level=loglevels[args.loglvl])
+    setup_logger("mwa_source_finder", log_levels[args.loglvl])
 
     # Input checking
     if (
@@ -296,7 +301,7 @@ def main():
         beam_coverage,
         pointings,
         all_obs_metadata,
-    ) = sf.find_sources_in_obs(
+    ) = find_sources_in_obs(
         sources,
         obsids,
         args.start,
@@ -310,35 +315,32 @@ def main():
         freq_mode=args.freq_mode,
         freq_samples=args.freq_samples,
         no_cache=args.no_cache,
-        logger=logger,
     )
 
     if args.obs_for_source:
         if args.plan_obs_length is not None:
-            obs_plan = sf.find_best_obs_times_for_sources(
+            obs_plan = find_best_obs_times_for_sources(
                 pointings.keys(),
                 all_obs_metadata,
                 beam_coverage,
                 obs_length=args.plan_obs_length,
-                logger=logger,
             )
 
             if args.download_plan:
-                sf.plan_data_download(obs_plan, savename="download_plan.csv", logger=logger)
+                plan_data_download(obs_plan, savename="download_plan.csv")
         else:
             obs_plan = None
 
-        sf.write_output_source_files(
+        write_output_source_files(
             finder_results,
             all_obs_metadata,
             args.freq_mode,
             norm_mode,
             args.min_power,
             obs_plan=obs_plan,
-            logger=logger,
         )
     else:
-        sf.write_output_obs_files(
+        write_output_obs_files(
             finder_results,
             all_obs_metadata,
             args.start,
@@ -346,23 +348,21 @@ def main():
             norm_mode,
             args.min_power,
             args.condition,
-            logger=logger,
         )
 
     if args.time_plot:
-        sf.plot_power_vs_time(
+        plot_power_vs_time(
             pointings.keys(),
             all_obs_metadata,
             beam_coverage,
             args.min_power,
             args.obs_for_source,
-            logger=logger,
         )
 
     if args.beam_plot or args.ms_beam_plot:
         # Ensure finder results are in source-for-obs format
         if args.obs_for_source:
-            obs_finder_results = sf.invert_finder_results(finder_results)
+            obs_finder_results = invert_finder_results(finder_results)
         else:
             obs_finder_results = finder_results
 
@@ -370,22 +370,20 @@ def main():
             obs_metadata = all_obs_metadata[obsid]
 
             if args.beam_plot:
-                sf.plot_beam_sky_map(
+                plot_beam_sky_map(
                     obs_finder_results[obsid],
                     beam_coverage,
                     obs_metadata,
                     pointings,
                     min_power=args.min_power,
                     norm_to_zenith=True,
-                    logger=logger,
                 )
 
             if args.ms_beam_plot:
-                sf.plot_multisource_beam_sky_map(
+                plot_multisource_beam_sky_map(
                     obs_finder_results[obsid],
                     beam_coverage,
                     obs_metadata,
                     pointings,
                     norm_to_zenith=True,
-                    logger=logger,
                 )

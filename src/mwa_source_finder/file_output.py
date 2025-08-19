@@ -3,13 +3,13 @@ import logging
 import numpy as np
 from astropy.table import Table
 
-import mwa_source_finder as sf
-
 __all__ = [
     "write_output_source_files",
     "write_output_obs_files",
     "invert_finder_results",
 ]
+
+logger = logging.getLogger(__name__)
 
 
 def write_output_source_files(
@@ -19,7 +19,6 @@ def write_output_source_files(
     norm_mode: str,
     min_power: float,
     obs_plan: dict = None,
-    logger: logging.Logger = None,
 ) -> None:
     """Write finder results for each source.
 
@@ -35,12 +34,7 @@ def write_output_source_files(
         The beam normalisation mode used ['zenith', 'beam'].
     min_power : `float`, optional
         The minimum power to count as in the beam.
-    logger : `logging.Logger`, optional
-        A custom logger to use, by default None.
     """
-    if logger is None:
-        logger = sf.utils.get_logger()
-
     for source in finder_result:
         if len(finder_result[source]) == 0:
             continue
@@ -120,7 +114,6 @@ def write_output_obs_files(
     norm_mode: str,
     min_power: float,
     condition: str = None,
-    logger: logging.Logger = None,
 ) -> None:
     """Write finder results for each observation.
 
@@ -140,12 +133,7 @@ def write_output_obs_files(
         The minimum power to count as in the beam.
     condition : `str`, optional
         The condition passed to the pulsar catalogue, by default None.
-    logger : `logging.Logger`, optional
-        A custom logger to use, by default None.
     """
-    if logger is None:
-        logger = sf.utils.get_logger()
-
     for obsid in finder_result:
         if len(finder_result[obsid]) == 0:
             continue

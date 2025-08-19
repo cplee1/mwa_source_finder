@@ -9,7 +9,10 @@ import numpy as np
 from astropy.coordinates import AltAz, SkyCoord
 from astropy.time import Time
 
-import mwa_source_finder as sf
+from .beam import get_beam_power_sky_map
+from .constants import LINE_STYLES, TEL_LOCATION
+
+# from .obs_planning import plan_obs_times
 
 plt.rcParams["mathtext.fontset"] = "dejavuserif"
 plt.rcParams["font.family"] = "serif"
@@ -23,6 +26,8 @@ __all__ = [
     "plot_beam_sky_map",
     "plot_multisource_beam_sky_map",
 ]
+
+logger = logging.getLogger(__name__)
 
 
 def setup_axis(ax, duration, fontsize=12):
@@ -70,7 +75,7 @@ def get_source_path(
         in radians.
     """
     source_dt = np.linspace(start_t_rel, end_t_rel, num_points) * u.s
-    obs_frame = AltAz(obstime=start_t_abs + source_dt, location=sf.TEL_LOCATION)
+    obs_frame = AltAz(obstime=start_t_abs + source_dt, location=TEL_LOCATION)
     source_altaz = source_radec.transform_to(obs_frame)
     altaz_path = np.empty((2, len(source_altaz)))
     for ii, altaz_step in enumerate(source_altaz):
@@ -85,7 +90,6 @@ def plot_power_vs_time(
     beam_coverage: dict,
     min_power: float,
     obs_for_source: bool = False,
-    logger: logging.Logger = None,
 ) -> None:
     """Make a plot of power vs time showing each obs ID for a source.
 
@@ -104,14 +108,9 @@ def plot_power_vs_time(
         The minimum power to count as in the beam.
     obs_for_source : `bool`, optional
         Whether to search for observations for each source, by default False.
-    logger : `logging.Logger`, optional
-        A custom logger to use, by default None.
     """
-    if logger is None:
-        logger = sf.utils.get_logger()
-
     line_combos = []
-    for lsi in sf.LINE_STYLES:
+    for lsi in LINE_STYLES:
         for coli in list(mcolors.TABLEAU_COLORS):
             line_combos.append([lsi, coli])
 
@@ -230,7 +229,6 @@ def plot_beam_sky_map(
     pointings: dict,
     min_power: float = None,
     norm_to_zenith: bool = True,
-    logger: logging.Logger = None,
 ) -> None:
     """Plot a figure showing the beam power and power vs time.
 
@@ -253,17 +251,8 @@ def plot_beam_sky_map(
         If specified, will plot the minimum power on the power vs time plot.
     norm_to_zenith : `bool`, optional
         Whether to normalise the powers to zenith, by default True.
-    logger : `logging.Logger`, optional
-        A custom logger to use, by default None.
     """
-    if logger is None:
-        logger = sf.utils.get_logger()
-
-    az, za, powers = sf.get_beam_power_sky_map(
-        obs_metadata,
-        norm_to_zenith=norm_to_zenith,
-        logger=logger,
-    )
+    az, za, powers = get_beam_power_sky_map(obs_metadata, norm_to_zenith=norm_to_zenith)
 
     # Compute the timestep frames
     start_t = Time(obs_metadata["start_t"], format="gps")
@@ -405,7 +394,6 @@ def plot_multisource_beam_sky_map(
     pointings: dict,
     min_power: float = None,
     norm_to_zenith: bool = True,
-    logger: logging.Logger = None,
 ) -> None:
     """Plot a figure showing the beam power and power vs time.
 
@@ -428,17 +416,8 @@ def plot_multisource_beam_sky_map(
         If specified, will plot the minimum power on the power vs time plot.
     norm_to_zenith : `bool`, optional
         Whether to normalise the powers to zenith, by default True.
-    logger : `logging.Logger`, optional
-        A custom logger to use, by default None.
     """
-    if logger is None:
-        logger = sf.utils.get_logger()
-
-    az, za, powers = sf.get_beam_power_sky_map(
-        obs_metadata,
-        norm_to_zenith=norm_to_zenith,
-        logger=logger,
-    )
+    az, za, powers = get_beam_power_sky_map(obs_metadata, norm_to_zenith=norm_to_zenith)
 
     # Compute the timestep frames
     start_t = Time(obs_metadata["start_t"], format="gps")
@@ -550,13 +529,12 @@ def plot_multisource_beam_sky_map(
             lw=1,
         )
 
-        start_t, stop_t, _ = sf.plan_obs_times(
-            obs_metadata,
-            source_power,
-            power_dt,
-            1800,
-            logger=logger,
-        )
+        # start_t, stop_t, _ = plan_obs_times(
+        #     obs_metadata,
+        #     source_power,
+        #     power_dt,
+        #     1800,
+        # )
 
     if min_power is not None:
         ax_1D.fill_between(

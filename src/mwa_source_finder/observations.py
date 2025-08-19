@@ -7,8 +7,6 @@ from typing import Optional
 
 import yaml
 
-import mwa_source_finder as sf
-
 __all__ = [
     "get_metadata",
     "get_common_metadata",
@@ -17,6 +15,8 @@ __all__ = [
     "save_as_yaml",
 ]
 
+logger = logging.getLogger(__name__)
+
 
 def get_metadata(
     servicetype: str = "metadata",
@@ -24,7 +24,6 @@ def get_metadata(
     params: dict = None,
     retries: int = 3,
     retry_http_error: bool = False,
-    logger: logging.Logger = None,
 ) -> dict:
     """Function to call a JSON web service to perform an MWA metadata call.
 
@@ -45,8 +44,6 @@ def get_metadata(
         The number of times to retry timeout errors, by default 3.
     retry_http_error : `bool`, optional
         Whether to retry the request after a HTTP error, by default False.
-    logger : `logging.Logger`, optional
-        A custom logger to use, by default None.
 
     Returns
     -------
@@ -90,7 +87,7 @@ def get_metadata(
     return result
 
 
-def get_common_metadata(obsid: int, filter_available: bool = False, logger: logging.Logger = None) -> dict:
+def get_common_metadata(obsid: int, filter_available: bool = False) -> dict:
     """Get observation metadata and extract some commonly used data.
 
     Parameters
@@ -99,18 +96,13 @@ def get_common_metadata(obsid: int, filter_available: bool = False, logger: logg
         The observation ID.
     filter_available : `bool`, optional
         Only search observations with data files available, by default False.
-    logger : `logging.Logger`, optional
-        A custom logger to use, by default None.
 
     Returns
     -------
     common_metadata : `dict`
         A dictionary of commonly used metadata.
     """
-    if logger is None:
-        logger = sf.utils.get_logger()
-
-    obs_metadata = get_metadata(service="obs", params={"obs_id": obsid}, logger=logger)
+    obs_metadata = get_metadata(service="obs", params={"obs_id": obsid})
     if obs_metadata is None:
         logger.error(f"Could not get metadata for obs ID: {obsid}")
         return None
@@ -124,11 +116,7 @@ def get_common_metadata(obsid: int, filter_available: bool = False, logger: logg
 
     if filter_available:
         # Check that there are available data files
-        files_metadata = get_metadata(
-            service="data_files",
-            params={"obs_id": obsid},
-            logger=logger,
-        )
+        files_metadata = get_metadata(service="data_files", params={"obs_id": obsid})
         if files_metadata is None:
             logger.error(f"Could not get files metadata for obs ID: {obsid}")
             return None
@@ -175,24 +163,19 @@ def get_common_metadata(obsid: int, filter_available: bool = False, logger: logg
     return common_metadata
 
 
-def get_all_obsids(pagesize: int = 50, logger: logging.Logger = None) -> list:
+def get_all_obsids(pagesize: int = 50) -> list:
     """Loops over pages for each page for MWA metadata calls.
 
     Parameters
     ----------
     pagesize : `int`
         Size of the page to query at a time.
-    logger : `logging.Logger`, optional
-        A custom logger to use, by default None.
 
     Returns
     -------
     obsids : `list`
         A list of the MWA observation IDs.
     """
-    if logger is None:
-        logger = sf.utils.get_logger()
-
     legacy_params = {"mode": "VOLTAGE_START"}
     mwax_params = {"mode": "MWAX_VCS"}
     obsids = []
@@ -205,7 +188,7 @@ def get_all_obsids(pagesize: int = 50, logger: logging.Logger = None) -> list:
         while len(temp) == pagesize or page == 1:
             params["page"] = page
             logger.debug(f"Page: {page}  params: {params}")
-            temp = get_metadata(service="find", params=params, retry_http_error=True, logger=logger)
+            temp = get_metadata(service="find", params=params, retry_http_error=True)
             # If there are no obs in the field (which is rare), None is returned
             if temp is not None:
                 for row in temp:

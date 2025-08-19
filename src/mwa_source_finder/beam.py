@@ -7,7 +7,7 @@ import mwa_hyperbeam
 import numpy as np
 from scipy import interpolate
 
-import mwa_source_finder as sf
+from .coordinates import equatorial_to_horizontal
 
 __all__ = [
     "compute_beam_power_array",
@@ -17,6 +17,8 @@ __all__ = [
     "source_beam_coverage",
 ]
 
+logger = logging.getLogger(__name__)
+
 
 def compute_beam_power_array(
     az: np.ndarray,
@@ -24,7 +26,6 @@ def compute_beam_power_array(
     freq: float,
     delays: np.ndarray,
     norm_to_zenith: bool = True,
-    logger: logging.Logger = None,
 ) -> np.ndarray:
     """Compute the beam power for an array of sky coordinates.
 
@@ -40,17 +41,12 @@ def compute_beam_power_array(
         The antenna delays.
     norm_to_zenith : `bool`, optional
         Whether to normalise the powers to zenith, by default True.
-    logger : `logging.Logger`, optional
-        A custom logger to use, by default None.
 
     Returns
     -------
     P : `np.ndarray`
         The beam powers as flattened array.
     """
-    if logger is None:
-        logger = sf.utils.get_logger()
-
     if os.environ.get("MWA_BEAM_FILE"):
         beam = mwa_hyperbeam.FEEBeam(None)
     else:
@@ -91,7 +87,6 @@ def get_beam_power_vs_time(
     norm_to_zenith: bool = True,
     freq_mode: str = "centre",
     freq_samples: int = 10,
-    logger: logging.Logger = None,
 ) -> Tuple[np.ndarray, np.ndarray, float, float]:
     """Compute the beam power over time for a multiple sources.
 
@@ -116,8 +111,6 @@ def get_beam_power_vs_time(
     freq_samples : `int`, optional
         If in multifreq mode, compute this many samples over the observing band,
         by default 10.
-    logger : `logging.Logger`, optional
-        A custom logger to use, by default None.
 
     Returns
     -------
@@ -130,9 +123,6 @@ def get_beam_power_vs_time(
     freq : `float`
         The frequency of the beam model used.
     """
-    if logger is None:
-        logger = sf.utils.get_logger()
-
     # Unpack some metadata
     obsid = obs_metadata["obsid"]
     full_duration = obs_metadata["duration"]
@@ -182,9 +172,7 @@ def get_beam_power_vs_time(
     for itime, time in enumerate(times):
         idx_start = itime
         idx_end = itime + num_coords
-        _, Azs[idx_start:idx_end:idx_step], ZAs[idx_start:idx_end:idx_step] = sf.utils.equatorial_to_horizontal(
-            RAs, DECs, time
-        )
+        _, Azs[idx_start:idx_end:idx_step], ZAs[idx_start:idx_end:idx_step] = equatorial_to_horizontal(RAs, DECs, time)
 
     powers_temp = np.zeros(num_coords, dtype=float)
     powers = np.empty(shape=(len(pointings), len(times), len(freqs)), dtype=float)
@@ -196,7 +184,6 @@ def get_beam_power_vs_time(
             freq,
             obs_metadata["delays"],
             norm_to_zenith=norm_to_zenith,
-            logger=logger,
         )
         powers[:, :, ifreq] = powers_temp.reshape((len(pointings), len(times)))
 
@@ -206,7 +193,6 @@ def get_beam_power_vs_time(
 def get_beam_power_sky_map(
     obs_metadata: dict,
     norm_to_zenith: bool = True,
-    logger: logging.Logger = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Compute the beam power for a grid of Az/ZA.
 
@@ -216,8 +202,6 @@ def get_beam_power_sky_map(
         A dictionary of commonly used metadata.
     norm_to_zenith : `bool`, optional
         Whether to normalise the powers to zenith, by default True.
-    logger : `logging.Logger`, optional
-        A custom logger to use, by default None.
 
     Returns
     -------
@@ -228,9 +212,6 @@ def get_beam_power_sky_map(
     P : `np.ndarray`
         An array of powers in the shape of the meshgrid.
     """
-    if logger is None:
-        logger = sf.utils.get_logger()
-
     az0, az1 = 0, 2 * np.pi
     za0, za1 = 0, 0.95 * np.pi / 2
     grid_res = 600
@@ -245,7 +226,6 @@ def get_beam_power_sky_map(
         np.mean(obs_metadata["evalfreqs"]),
         obs_metadata["delays"],
         norm_to_zenith=norm_to_zenith,
-        logger=logger,
     )
     return az, za, P.reshape(az.shape)
 
@@ -311,7 +291,6 @@ def source_beam_coverage(
     min_power: float = 0.3,
     freq_mode: str = "centre",
     freq_samples: int = 10,
-    logger: logging.Logger = None,
 ) -> Tuple[dict, dict]:
     """For lists of pointings and observations, find where each source each
     source enters and exits each beam.
@@ -344,8 +323,6 @@ def source_beam_coverage(
     freq_samples : `int`, optional
         If in multifreq mode, compute this many samples over the observing band,
         by default 10.
-    logger : `logging.Logger`, optional
-        A custom logger to use, by default None.
 
     Returns
     -------
@@ -368,9 +345,6 @@ def source_beam_coverage(
         The same as the input dictionary with an added 'evalfreqs' field for
         the frequencies at which each observation was searched.
     """
-    if logger is None:
-        logger = sf.utils.get_logger()
-
     if norm_mode == "zenith":
         norm_to_zenith = True
     else:
@@ -396,7 +370,6 @@ def source_beam_coverage(
             norm_to_zenith=norm_to_zenith,
             freq_mode=freq_mode,
             freq_samples=freq_samples,
-            logger=logger,
         )
         all_obs_metadata[obsid]["evalfreqs"] = freqs
 

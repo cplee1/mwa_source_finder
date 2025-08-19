@@ -7,7 +7,7 @@ from astropy import units as u
 from astropy.coordinates import AltAz, SkyCoord
 from astropy.time import Time
 
-import mwa_source_finder as sf
+from .constants import TEL_LOCATION
 
 __all__ = [
     "decimal_to_sexigesimal",
@@ -18,6 +18,8 @@ __all__ = [
     "get_pointings",
     "get_atnf_pulsars",
 ]
+
+logger = logging.getLogger(__name__)
 
 
 def _is_float(string: str) -> bool:
@@ -99,7 +101,7 @@ def _is_sexigesimal(coord: str, mode: str) -> bool:
     return True
 
 
-def _format_sexigesimal(coord: str, add_sign: bool = False, logger: logging.Logger = None) -> Optional[str]:
+def _format_sexigesimal(coord: str, add_sign: bool = False) -> Optional[str]:
     """Format a sexigesimal coordinate properly. Will assume zero for any
     missing units. E.g. '09:23' will be formatted as '09:23:00.00'.
 
@@ -109,17 +111,12 @@ def _format_sexigesimal(coord: str, add_sign: bool = False, logger: logging.Logg
         The sexigesimal coordinate to format.
     add_sign : `bool`, optional
         Add a sign to the output, by default False.
-    logger : `logging.Logger`, optional
-        A custom logger to use, by default None.
 
     Returns
     -------
     formatted_coord : `str`
         The properly formatted coordinate.
     """
-    if logger is None:
-        logger = sf.utils.get_logger()
-
     # Determine the sign
     if coord.startswith(("-", "–")):
         sign = "-"
@@ -224,19 +221,16 @@ def equatorial_to_horizontal(
     za : Union[`float`, `np.ndarray`]
         The zenith angle(s) in degrees.
     """
-
     eq_pos = SkyCoord(rajd, decjd, unit=(u.deg, u.deg))
     obstime = Time(float(gps_epoch), format="gps")
-    altaz_pos = eq_pos.transform_to(AltAz(obstime=obstime, location=sf.TEL_LOCATION))
+    altaz_pos = eq_pos.transform_to(AltAz(obstime=obstime, location=TEL_LOCATION))
     alt = altaz_pos.alt.deg
     az = altaz_pos.az.deg
     za = 90.0 - alt
     return alt, az, za
 
 
-def get_pulsar_coords(
-    pulsar: str, query: psrqpy.QueryATNF, logger: logging.Logger = None
-) -> Tuple[str, str, float, float]:
+def get_pulsar_coords(pulsar: str, query: psrqpy.QueryATNF) -> Tuple[str, str, float, float]:
     """Get pulsar coordinates, period, and DM from a psrqpy query.
 
     Parameters
@@ -245,8 +239,6 @@ def get_pulsar_coords(
         Pulsar J-name or B-name.
     query : `psrqpy.QueryATNF`
         A psrqpy Query object.
-    logger : `logging.Logger`, optional
-        A custom logger to use, by default None.
 
     Returns
     -------
@@ -263,9 +255,6 @@ def get_pulsar_coords(
     p0 : `float`
         The pulsar spin period in ms.
     """
-    if logger is None:
-        logger = sf.utils.get_logger()
-
     # If pulsar Bname, convert to Jname
     if pulsar.startswith("B"):
         try:
@@ -289,15 +278,13 @@ def get_pulsar_coords(
     return raj, decj, rajd, decjd, dm, p0
 
 
-def interpret_coords(coords: str, logger: logging.Logger = None) -> Tuple[str, str, float, float]:
+def interpret_coords(coords: str) -> Tuple[str, str, float, float]:
     """Interpret source coordinates.
 
     Parameters
     ----------
     coords : `str`
         Coordinates in <RA>_<DEC> format, either sexigesimal or decimal.
-    logger : `logging.Logger`, optional
-        A custom logger to use, by default None.
 
     Returns
     -------
@@ -310,9 +297,6 @@ def interpret_coords(coords: str, logger: logging.Logger = None) -> Tuple[str, s
     decjd : `float`
         The J2000 declination in decimal degrees.
     """
-    if logger is None:
-        logger = sf.utils.get_logger()
-
     # Split up the coordinates
     raj = coords.split("_")[0]
     decj = coords.split("_")[1]
@@ -344,12 +328,12 @@ def interpret_coords(coords: str, logger: logging.Logger = None) -> Tuple[str, s
             return None, None, None, None
         rajd, decjd = sexigesimal_to_decimal(raj, decj)
     # Make sure sexigesimal coords are formatted correctly
-    raj = _format_sexigesimal(raj, logger=logger)
-    decj = _format_sexigesimal(decj, add_sign=True, logger=logger)
+    raj = _format_sexigesimal(raj)
+    decj = _format_sexigesimal(decj, add_sign=True)
     return raj, decj, rajd, decjd
 
 
-def get_pointings(sources: list, condition: str = None, logger: logging.Logger = None) -> dict:
+def get_pointings(sources: list, condition: str = None) -> dict:
     """Get source pointing information and store it in dictionary format.
 
     Parameters
@@ -358,8 +342,6 @@ def get_pointings(sources: list, condition: str = None, logger: logging.Logger =
         A list of source names.
     condition : `str`, optional
         A condition to pass to the pulsar catalogue, by default None.
-    logger : `logging.Logger`, optional
-        A custom logger to use, by default None.
 
     Returns
     -------
@@ -367,9 +349,6 @@ def get_pointings(sources: list, condition: str = None, logger: logging.Logger =
         A dictionary of dictionaries containing pointing information, organised
         by source name.
     """
-    if logger is None:
-        logger = sf.utils.get_logger()
-
     pointings = dict()
     query_flag = False
     # Check for pulsar names
@@ -388,10 +367,10 @@ def get_pointings(sources: list, condition: str = None, logger: logging.Logger =
     for source in sources:
         if source.startswith(("J", "B")):
             logger.debug(f'Treating "{source}" as a pulsar')
-            raj, decj, rajd, decjd, dm, p0 = get_pulsar_coords(source, query, logger=logger)
+            raj, decj, rajd, decjd, dm, p0 = get_pulsar_coords(source, query)
         elif "_" in source:
             logger.debug(f'Treating "{source}" as coordinates')
-            raj, decj, rajd, decjd = interpret_coords(source, logger=logger)
+            raj, decj, rajd, decjd = interpret_coords(source)
             dm, p0 = None, None
         else:
             logger.error(f"Source not recognised: {source}")
@@ -402,15 +381,13 @@ def get_pointings(sources: list, condition: str = None, logger: logging.Logger =
     return pointings
 
 
-def get_atnf_pulsars(condition: str = None, logger: logging.Logger = None) -> dict:
+def get_atnf_pulsars(condition: str = None) -> dict:
     """Get source pointing information from the ATNF pulsar catalogue.
 
     Parameters
     ----------
     condition : `str`, optional
         A condition to pass to the pulsar catalogue, by default None.
-    logger : `logging.Logger`, optional
-        A custom logger to use, by default None.
 
     Returns
     -------
@@ -418,9 +395,6 @@ def get_atnf_pulsars(condition: str = None, logger: logging.Logger = None) -> di
         A dictionary of dictionaries containing pointing information, organised
         by source name.
     """
-    if logger is None:
-        logger = sf.utils.get_logger()
-
     logger.debug("Querying the pulsar catalogue")
     query = psrqpy.QueryATNF(params=["PSRJ", "RAJ", "DECJ", "RAJD", "DECJD", "DM", "P0"], condition=condition)
     logger.info(f"Using ATNF pulsar catalogue version {query.get_version}")
@@ -437,8 +411,8 @@ def get_atnf_pulsars(condition: str = None, logger: logging.Logger = None) -> di
         if raj == "" or decj == "":
             logger.debug(f"Incomplete catalogued coordinates for PSR {psrj}")
             continue
-        raj = _format_sexigesimal(raj, logger=logger)
-        decj = _format_sexigesimal(decj, add_sign=True, logger=logger)
+        raj = _format_sexigesimal(raj)
+        decj = _format_sexigesimal(decj, add_sign=True)
         pointing = dict(name=psrj, RAJ=raj, DECJ=decj, RAJD=rajd, DECJD=decjd, DM=dm, P0=p0)
         pointings[psrj] = pointing
     return pointings

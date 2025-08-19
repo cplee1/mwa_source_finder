@@ -4,14 +4,14 @@ from typing import Tuple
 
 import numpy as np
 
-import mwa_source_finder as sf
-
 __all__ = [
     "plan_obs_times",
     "find_best_obs_times_for_sources",
     "plan_data_download",
     "find_contiguous_ranges",
 ]
+
+logger = logging.getLogger(__name__)
 
 
 def _round_down(time: float, chunksize: float = 8.0) -> float:
@@ -32,13 +32,7 @@ def _round_down(time: float, chunksize: float = 8.0) -> float:
     return time - (time % chunksize)
 
 
-def plan_obs_times(
-    obs_metadata: dict,
-    power: np.ndarray,
-    times: np.ndarray,
-    obs_length: float,
-    logger: logging.Logger = None,
-) -> Tuple[float, float]:
+def plan_obs_times(obs_metadata: dict, power: np.ndarray, times: np.ndarray, obs_length: float) -> Tuple[float, float]:
     """For arrays of power vs time, find obs_length seconds where the power is
     the highest, and return the start and stop times.
 
@@ -52,8 +46,6 @@ def plan_obs_times(
         The times of the powers from the start of the observation, in seconds.
     obs_length : `float`
         The desired observation length, in seconds.
-    logger : `logging.Logger`, optional
-        A custom logger to use, by default None.
 
     Returns
     -------
@@ -64,9 +56,6 @@ def plan_obs_times(
     peak_time : `float`
         The time of the peak power in the beam, in seconds.
     """
-    if logger is None:
-        logger = sf.utils.get_logger()
-
     # Unpack some metadata
     obsid = obs_metadata["obsid"]
     obs_duration = obs_metadata["duration"]
@@ -111,11 +100,7 @@ def plan_obs_times(
 
 
 def find_best_obs_times_for_sources(
-    source_names: list,
-    all_obs_metadata: dict,
-    beam_coverage: dict,
-    obs_length: float = None,
-    logger: logging.Logger = None,
+    source_names: list, all_obs_metadata: dict, beam_coverage: dict, obs_length: float = None
 ) -> dict:
     """Find the best observation for each source, based on the mean power level,
     then return the optimal start and stop times of an observation of obs_length
@@ -134,8 +119,6 @@ def find_best_obs_times_for_sources(
         the beam, and an array of powers for each time step.
     obs_length : `float`
         The desired observation length, in seconds.
-    logger : `logging.Logger`, optional
-        A custom logger to use, by default None.
 
     Returns
     -------
@@ -144,9 +127,6 @@ def find_best_obs_times_for_sources(
         dictionary containing the obs ID, peak time, best start time, and best
         stop time, of the best observation.
     """
-    if logger is None:
-        logger = sf.utils.get_logger()
-
     # The plan will be stored as a dictionary of source names
     obs_plan = dict()
 
@@ -168,7 +148,6 @@ def find_best_obs_times_for_sources(
                     powers,
                     times,
                     obs_length=obs_length,
-                    logger=logger,
                 )
 
                 peak_power_segment = powers[(times > start_t) & (times < stop_t)]
@@ -191,7 +170,6 @@ def find_best_obs_times_for_sources(
             powers,
             times,
             obs_length=obs_length,
-            logger=logger,
         )
 
         # Store in the dictionary
@@ -203,11 +181,7 @@ def find_best_obs_times_for_sources(
     return obs_plan
 
 
-def plan_data_download(
-    obs_plan: dict,
-    savename: str = None,
-    logger: logging.Logger = None,
-) -> list:
+def plan_data_download(obs_plan: dict, savename: str = None) -> list:
     """Generate a list of downloads from an observing plan.
 
     Parameters
@@ -218,8 +192,6 @@ def plan_data_download(
         stop time, of the best observation.
     savename : `str`, optional
         The name of the output csv file, by default None.
-    logger : `logging.Logger`, optional
-        A custom logger to use, by default None.
 
     Returns
     -------
@@ -228,9 +200,6 @@ def plan_data_download(
         download, stop time of the download, and the sources within the
         downloaded data.
     """
-    if logger is None:
-        logger = sf.utils.get_logger()
-
     # Get a list of unique obs IDs
     all_obsids = [obs_plan[source]["obsid"] for source in obs_plan]
     unique_obsids = sorted(list(set(all_obsids)))
