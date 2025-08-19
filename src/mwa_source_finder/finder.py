@@ -158,7 +158,7 @@ def find_sources_in_obs(
         if logger.level in [logging.DEBUG, logging.INFO]:
             disable_tqdm = False
         for obsid in tqdm(obsids_to_query, unit="obsid", disable=disable_tqdm):
-            obs_metadata_tmp = get_common_metadata(obsid, filter_available, logger)
+            obs_metadata_tmp = get_common_metadata(obsid, filter_available)
             if obs_metadata_tmp is not None:
                 all_obs_metadata[obsid] = obs_metadata_tmp
                 cached_obs_metadata[obsid] = obs_metadata_tmp

@@ -12,14 +12,6 @@ from astropy.time import Time
 from .beam import get_beam_power_sky_map
 from .constants import LINE_STYLES, TEL_LOCATION
 
-# from .obs_planning import plan_obs_times
-
-plt.rcParams["mathtext.fontset"] = "dejavuserif"
-plt.rcParams["font.family"] = "serif"
-plt.rcParams["font.size"] = 12
-# plt.rcParams["text.usetex"] = True
-# plt.rcParams["font.serif"] = "cm"
-
 __all__ = [
     "setup_axis",
     "plot_power_vs_time",
@@ -40,8 +32,8 @@ def setup_axis(ax, duration, fontsize=12):
     ax.minorticks_on()
     ax.grid(ls=":", color="0.5")
     ax.set_xlim([0, duration])
-    ax.set_xlabel("Time since start of observation [s]")
-    ax.set_ylabel("Zenith-normalised beam power")
+    ax.set_xlabel("Elapsed Time [s]")
+    ax.set_ylabel("Zenith-Normalised Beam Power")
 
 
 def get_source_path(
@@ -119,7 +111,7 @@ def plot_power_vs_time(
         for source_name in source_names:
             max_duration = 0
 
-            fig = plt.figure(figsize=(8, 4), dpi=200)
+            fig = plt.figure(figsize=(8, 4))
             ax = fig.add_subplot(111)
 
             for ii, obsid in enumerate(all_obs_metadata):
@@ -162,7 +154,6 @@ def plot_power_vs_time(
                 loc="upper center",
                 bbox_to_anchor=(0.5, -0.02),
                 fancybox=True,
-                shadow=True,
                 ncol=3,
             )
             fig.suptitle(f"Source: {source_name}")
@@ -177,7 +168,7 @@ def plot_power_vs_time(
         for obsid in all_obs_metadata:
             max_duration = all_obs_metadata[obsid]["duration"]
 
-            fig = plt.figure(figsize=(8, 4), dpi=200)
+            fig = plt.figure(figsize=(8, 4))
             ax = fig.add_subplot(111)
 
             for ii, source_name in enumerate(beam_coverage[obsid]):
@@ -216,7 +207,6 @@ def plot_power_vs_time(
                 loc="upper center",
                 bbox_to_anchor=(0.5, -0.02),
                 fancybox=True,
-                shadow=True,
                 ncol=3,
             )
             fig.suptitle(f"Obs ID: {obsid}")
@@ -291,9 +281,9 @@ def plot_beam_sky_map(
         )
 
         # Figure setup
-        fig = plt.figure(figsize=(5, 6.5), dpi=200)
+        fig = plt.figure(figsize=(5, 6.5))
         fig.suptitle(f"Obs ID: {obs_metadata['obsid']}   Source: {source_name}", y=1.02)
-        gs = mpl.gridspec.GridSpec(2, 1, hspace=0.2, height_ratios=[3, 1])
+        gs = mpl.gridspec.GridSpec(2, 1, hspace=0.2, height_ratios=[2.5, 1])
 
         # Polar plot
         # ----------------------------------------------------------------------
@@ -338,7 +328,6 @@ def plot_beam_sky_map(
             loc="upper center",
             bbox_to_anchor=(0.48, 0.975),
             fancybox=True,
-            shadow=True,
             ncol=3,
         )
 
@@ -353,8 +342,8 @@ def plot_beam_sky_map(
                 for x in np.round(np.degrees(ax_2D.get_yticks()), 0)
             ]
         )
-        ax_2D.set_xlabel("Azimuth angle [deg]", labelpad=5)
-        ax_2D.set_ylabel("Zenith angle [deg]", labelpad=30)
+        ax_2D.set_xlabel("Azimuth Angle [deg]", labelpad=5)
+        ax_2D.set_ylabel("Zenith Angle [deg]", labelpad=30)
         ax_2D.tick_params(labelsize=10)
         cbar = plt.colorbar(
             im,
@@ -362,7 +351,7 @@ def plot_beam_sky_map(
             extend="min",
             ticks=[0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
         )
-        cbar.ax.set_ylabel("Zenith-normalised beam power", labelpad=10)
+        cbar.ax.set_ylabel("Zenith-Normalised Beam Power", labelpad=10)
         cbar.ax.tick_params(labelsize=10)
         for contour_level in contour_levels:
             cbar.ax.axhline(contour_level, color="k", lw=1)
@@ -392,8 +381,8 @@ def plot_beam_sky_map(
                 hatch="///",
             )
 
-        ax_1D.set_xlabel("Time since start of observation [s]")
-        ax_1D.set_ylabel("Z.N. beam power")
+        ax_1D.set_xlabel("Elapsed Time [s]")
+        ax_1D.set_ylabel("Z.N. Beam Power")
         ax_1D.set_ylim([0, 1])
         ax_1D.set_xlim([0, obs_metadata["duration"]])
         ax_1D.set_yticks([0, 0.1, 0.5, 0.9, 1.0])
@@ -467,8 +456,8 @@ def plot_multisource_beam_sky_map(
     contour_levels = [0.01, 0.1, 0.5, 0.9]
 
     # Figure setup
-    fig = plt.figure(figsize=(5, 6.5), dpi=300)
-    gs0 = fig.add_gridspec(2, 1, hspace=0.1, height_ratios=[3, 1])
+    fig = plt.figure(figsize=(5, 6.5))
+    gs0 = fig.add_gridspec(2, 1, hspace=0.1, height_ratios=[2.5, 1])
     gs00 = gs0[0]
     gs01 = gs0[1]
 
@@ -535,8 +524,8 @@ def plot_multisource_beam_sky_map(
             for x in np.round(np.degrees(ax_2D.get_yticks()), 0)
         ]
     )
-    ax_2D.set_xlabel("Azimuth angle [deg]", labelpad=5)
-    ax_2D.set_ylabel("Zenith angle [deg]", labelpad=30)
+    ax_2D.set_xlabel("Azimuth Angle [deg]", labelpad=5)
+    ax_2D.set_ylabel("Zenith Angle [deg]", labelpad=30)
     ax_2D.tick_params(axis="both", which="both", direction="in", labelsize=10)
     cbar = plt.colorbar(
         im,
@@ -544,7 +533,7 @@ def plot_multisource_beam_sky_map(
         extend="min",
         ticks=[0.01, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
     )
-    cbar.ax.set_ylabel("Zenith-normalised beam power", labelpad=10)
+    cbar.ax.set_ylabel("Zenith-Normalised Beam Power", labelpad=10)
     cbar.ax.tick_params(labelsize=10)
     for contour_level in contour_levels:
         cbar.ax.axhline(contour_level, color="k", lw=1)
@@ -566,13 +555,6 @@ def plot_multisource_beam_sky_map(
             lw=1,
         )
 
-        # start_t, stop_t, _ = plan_obs_times(
-        #     obs_metadata,
-        #     source_power,
-        #     power_dt,
-        #     1800,
-        # )
-
     if min_power is not None:
         ax_1D.fill_between(
             [0, obs_metadata["duration"]],
@@ -583,8 +565,8 @@ def plot_multisource_beam_sky_map(
             hatch="///",
         )
 
-    ax_1D.set_xlabel("Time since start of observation [s]")
-    ax_1D.set_ylabel("Z.N. beam power")
+    ax_1D.set_xlabel("Elapsed Time [s]")
+    ax_1D.set_ylabel("Z.N. Beam Power")
     ax_1D.set_ylim([0, 1])
     ax_1D.set_xlim([0, obs_metadata["duration"]])
     ax_1D.minorticks_on()
@@ -598,6 +580,5 @@ def plot_multisource_beam_sky_map(
     fig_name = f"{obs_metadata['obsid']}_multisource_sky_beam_power"
     logger.info(f"Saving plot file: {fig_name}.png")
     plt.savefig(fig_name + ".png", bbox_inches="tight")
-    # plt.savefig(fig_name + ".pdf", bbox_inches="tight")
 
     plt.close()

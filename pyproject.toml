@@ -27,7 +27,7 @@ dependencies = [
 lint = ["ruff"]
 
 [project.scripts]
-source-finder = "mwa_source_finder.applications.source_finder_cli:main"
+source-finder = "mwa_source_finder.apps.source_finder_cli:main"
 
 [build-system]
 requires = ["setuptools"]
@@ -40,7 +40,7 @@ target-version = "py310"
 include = [
     "pyproject.toml",
     "src/mwa_source_finder/*.py",
-    "src/mwa_source_finder/applications/*.py",
+    "src/mwa_source_finder/apps/*.py",
 ]
 
 [tool.ruff.lint]
