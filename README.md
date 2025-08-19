@@ -30,7 +30,7 @@ available. To search for pulsars in an observation, run
 
 To search for observations with a given source in it, run
 
-    source-finder -s <source> --obs_for_source [--smart ] [--time_plot] [--beam_plot]
+    source-finder -s <source> --obs_for_source [--smart] [--time_plot] [--beam_plot]
 
 where the `-s` option accepts either pulsar names or `RA_DEC` coordinates.
 The `-o` and `-s` options can also be used together to search for one or more
