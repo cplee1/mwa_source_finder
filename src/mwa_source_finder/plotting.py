@@ -130,45 +130,47 @@ def plot_power_vs_time(
             fig = plt.figure(figsize=(8, 4))
             ax = fig.add_subplot(111)
 
-            for ii, obsid in enumerate(all_obs_metadata):
-                if source_name in beam_coverage[obsid]:
-                    obs_duration = all_obs_metadata[obsid]["duration"]
-                    if obs_duration > max_duration:
-                        max_duration = obs_duration
-                    beam_enter, beam_exit, _, powers, times = beam_coverage[obsid][
-                        source_name
-                    ]
+            for obsid in all_obs_metadata:
+                if source_name not in beam_coverage[obsid]:
+                    continue
 
-                    # Filter by min time in beam
-                    if filter_min_time:
-                        time_in_beam = (beam_exit - beam_enter) * obs_duration
-                        if time_in_beam < filter_min_time:
-                            obs_to_del.append(obsid)
-                            continue
+                obs_duration = all_obs_metadata[obsid]["duration"]
+                if obs_duration > max_duration:
+                    max_duration = obs_duration
+                beam_enter, beam_exit, _, powers, times = beam_coverage[obsid][
+                    source_name
+                ]
 
-                    # Any plot with this many obs IDs will be unreadable
-                    if ii >= len(line_combos):
-                        logger.error(
-                            f"Source {source_name}: Too many obs IDs to make a "
-                            + "power vs time plot. Skipping."
-                        )
-                        early_break = True
-                        break
+                # Filter by min time in beam
+                if filter_min_time:
+                    time_in_beam = (beam_exit - beam_enter) * obs_duration
+                    if time_in_beam < filter_min_time:
+                        obs_to_del.append(obsid)
+                        continue
 
-                    # Plot powers
-                    for ifreq in range(powers.shape[1]):
-                        label = None
-                        if ifreq == 0:
-                            label = obsid
-                        ax.errorbar(
-                            times,
-                            powers[:, ifreq],
-                            ls=line_combos[ii][0],
-                            c=line_combos[ii][1],
-                            label=label,
-                        )
+                # Any plot with this many obs IDs will be unreadable
+                if num_obs >= len(line_combos):
+                    logger.error(
+                        f"Source {source_name}: Too many obs IDs to make a "
+                        + "power vs time plot. Skipping."
+                    )
+                    early_break = True
+                    break
 
-                    num_obs += 1
+                # Plot powers
+                for ifreq in range(powers.shape[1]):
+                    label = None
+                    if ifreq == 0:
+                        label = obsid
+                    ax.errorbar(
+                        times,
+                        powers[:, ifreq],
+                        ls=line_combos[num_obs][0],
+                        c=line_combos[num_obs][1],
+                        label=label,
+                    )
+
+                num_obs += 1
 
             if early_break:
                 early_break = False
