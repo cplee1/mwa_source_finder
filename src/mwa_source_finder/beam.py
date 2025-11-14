@@ -259,12 +259,13 @@ def beam_enter_exit(
         The fraction of the observation where the source exits the beam.
     """
     powers_offset = powers - min_power
+    times_offset = times - times[0]
 
     if np.min(powers_offset) > 0.0:
         enter_beam = 0.0
         exit_beam = 1.0
     else:
-        spline = interpolate.UnivariateSpline(times, powers_offset, s=0.0)
+        spline = interpolate.UnivariateSpline(times_offset, powers_offset, s=0.0)
         if len(spline.roots()) == 2:
             enter_beam, exit_beam = spline.roots()
             enter_beam /= duration
