@@ -56,8 +56,6 @@ select = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-# Ignore wildcard imports in init files
-"__init__.py" = ["F403"]
 # Ignore unused imports due to cmasher
 "plotting.py" = ["F401"]
 # Ignore line too long

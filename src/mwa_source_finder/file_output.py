@@ -1,7 +1,7 @@
 import logging
 
 import numpy as np
-from astropy.table import Table
+from astropy.table import Column, Table
 
 __all__ = [
     "write_output_source_files",
@@ -18,7 +18,8 @@ def write_output_source_files(
     freq_mode: str,
     norm_mode: str,
     min_power: float,
-    obs_plan: dict = None,
+    obs_plan: dict | None = None,
+    filter_min_time: float | None = None,
 ) -> None:
     """Write finder results for each source.
 
@@ -34,6 +35,9 @@ def write_output_source_files(
         The beam normalisation mode used ['zenith', 'beam'].
     min_power : `float`, optional
         The minimum power to count as in the beam.
+    filter_min_time : `str`, optional
+        Exclude obs IDs for which the source is in the beam for less than this
+        duration of time in seconds.
     """
     for source in finder_result:
         if len(finder_result[source]) == 0:
@@ -46,16 +50,37 @@ def write_output_source_files(
             row += [obs_metadata["centrefreq"]]
             row += [obs_metadata["bandwidth"]]
             beam_data_extended.append(row)
+
+        # Add data to Table
         data = Table(
             names=["Obs ID", "Enter", "Exit", "Power", "Dur", "Freq", "BW"],
             dtype=[int, float, float, float, int, float, float],
             rows=beam_data_extended,
         )
+        time_col = Column(
+            name="Time",
+            dtype=float,
+            description="The time spent in the beam [s]",
+            data=(data["Exit"] - data["Enter"]) * data["Dur"],
+        )
+        data.add_column(col=time_col, index=4)
+
+        # Format the Table
         data["Enter"].format = "%.3f"
         data["Exit"].format = "%.3f"
         data["Power"].format = "%.3f"
+        data["Time"].format = "%.3f"
         data["Freq"].format = "%.2f"
         data["BW"].format = "%.2f"
+
+        # Filter by min time in beam
+        if isinstance(filter_min_time, float):
+            data = data[data["Time"] >= filter_min_time]
+            if len(data) < 1:
+                logger.info(
+                    f"Source {source}: No obs IDs with time in beam >{filter_min_time:.3f}s"
+                )
+                continue
 
         out_file = f"{source}_obsIDs.txt"
         logger.info(f"Saving output file: {out_file}")
@@ -82,9 +107,10 @@ def write_output_source_files(
         header = (
             divider_str
             + "# Source finder settings:\n"
-            + f"# Freq mode      -- {freq_mode}\n"
-            + f"# Norm mode      -- {norm_mode}\n"
-            + f"# Min norm power -- {min_power:.2f}\n"
+            + f"# Freq mode        -- {freq_mode}\n"
+            + f"# Norm mode        -- {norm_mode}\n"
+            + f"# Min norm power   -- {min_power:.2f}\n"
+            + f"# Min time in beam -- {filter_min_time}\n"
             + divider_str
             + obs_plan_str
             + "# Column headers:\n"
@@ -92,9 +118,10 @@ def write_output_source_files(
             + "# Enter  -- The fraction of the observation when the source enters the beam\n"
             + "# Exit   -- The fraction of the observation when the source exits the beam\n"
             + "# Power  -- The maximum power of the source in the beam\n"
-            + "# Dur    -- The length of the observation in seconds\n"
-            + "# Freq   -- The centre frequency of the observation in MHz\n"
-            + "# BW     -- The bandwidth of the observation in MHz\n"
+            + "# Time   -- The time spent in the beam [s]\n"
+            + "# Dur    -- The length of the observation [s]\n"
+            + "# Freq   -- The centre frequency of the observation [MHz]\n"
+            + "# BW     -- The bandwidth of the observation [MHz]\n"
             + divider_str
             + "\n"
         )
@@ -113,7 +140,8 @@ def write_output_obs_files(
     t_end: float,
     norm_mode: str,
     min_power: float,
-    condition: str = None,
+    condition: str | None = None,
+    filter_min_time: float | None = None,
 ) -> None:
     """Write finder results for each observation.
 
@@ -133,11 +161,17 @@ def write_output_obs_files(
         The minimum power to count as in the beam.
     condition : `str`, optional
         The condition passed to the pulsar catalogue, by default None.
+    filter_min_time : `str`, optional
+        Exclude sources which are in the beam for less than this duration of
+        time in seconds.
     """
     for obsid in finder_result:
         if len(finder_result[obsid]) == 0:
             continue
         obs_data = np.array(finder_result[obsid])
+        obs_metadata = obs_metadata_dict[obsid]
+
+        # Add data to Table
         data = Table(
             names=["Name", "Enter", "Exit", "Power", "DM", "P0"],
             dtype=[str, float, float, float, float, float],
@@ -151,17 +185,35 @@ def write_output_obs_files(
             ],
             rows=obs_data,
         )
+        time_col = Column(
+            name="Time",
+            dtype=float,
+            description="The time spent in the beam [s]",
+            data=(data["Exit"] - data["Enter"]) * obs_metadata["duration"],
+        )
+        data.add_column(col=time_col, index=4)
+
+        # Format the Table
         data["Enter"].format = "%.3f"
         data["Exit"].format = "%.3f"
         data["Power"].format = "%.3f"
+        data["Time"].format = "%.3f"
         data["DM"].format = "%.3f"
         data["P0"].format = "%.3f"
+
+        # Filter by min time in beam
+        if isinstance(filter_min_time, float):
+            data = data[data["Time"] >= filter_min_time]
+            if len(data) < 1:
+                logger.info(
+                    f"Obs ID {obsid}: No sources are in the beam for >{filter_min_time:.3f}s"
+                )
+                continue
 
         out_file = f"{obsid}_sources.txt"
         logger.info(f"Saving output file: {out_file}")
         data.write(out_file, format="ascii.fixed_width_two_line", overwrite=True)
 
-        obs_metadata = obs_metadata_dict[obsid]
         t_start_offset = t_start * obs_metadata["duration"]
         t_stop_offset = t_end * obs_metadata["duration"]
 
@@ -190,6 +242,7 @@ def write_output_obs_files(
             + freqs_str
             + f"# Beam norm         -- {norm_mode}\n"
             + f"# Min norm power    -- {min_power:.2f}\n"
+            + f"# Min time in beam  -- {filter_min_time}\n"
             + f"# PSRCAT condition  -- {condition}\n"
             + divider_str
             + "# Column headers:\n"
@@ -197,6 +250,7 @@ def write_output_obs_files(
             + "# Enter -- The fraction of the time range when the source enters the beam\n"
             + "# Exit  -- The fraction of the time range when the source exits the beam\n"
             + "# Power -- The maximum beam power towards the source within the time range\n"
+            + "# Time  -- The time spent in the beam [s]\n"
             + "# DM    -- Dispersion measure [pc/cm^3]\n"
             + "# P0    -- Pulsar spin period [ms]\n"
             + divider_str
